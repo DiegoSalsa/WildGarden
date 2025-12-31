@@ -3,6 +3,44 @@ const menuToggle = document.querySelector('.menu-toggle');
 const navMenu = document.querySelector('.nav-menu');
 const navLinks = document.querySelectorAll('.nav-links a');
 
+function isLoggedIn() {
+    return !!localStorage.getItem('authToken');
+}
+
+function getStoredUser() {
+    try {
+        const raw = localStorage.getItem('user');
+        return raw ? JSON.parse(raw) : null;
+    } catch {
+        return null;
+    }
+}
+
+function updateAuthLinks() {
+    const links = document.querySelectorAll('.nav-login-link');
+    if (!links.length) return;
+
+    links.forEach(link => {
+        if (!link.getAttribute('data-login-href')) {
+            link.setAttribute('data-login-href', link.getAttribute('href') || '');
+        }
+    });
+
+    if (isLoggedIn()) {
+        links.forEach(link => {
+            link.textContent = 'Mi cuenta';
+            const loggedHref = link.getAttribute('data-logged-href');
+            if (loggedHref) link.setAttribute('href', loggedHref);
+        });
+    } else {
+        links.forEach(link => {
+            link.textContent = 'Ingresar';
+            const loginHref = link.getAttribute('data-login-href');
+            if (loginHref) link.setAttribute('href', loginHref);
+        });
+    }
+}
+
 if (menuToggle) {
     menuToggle.addEventListener('click', () => {
         menuToggle.classList.toggle('active');
@@ -205,6 +243,8 @@ if (searchForm) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    updateAuthLinks();
+
     // Actualizar display del carrito
     updateCartDisplay();
 
@@ -254,6 +294,71 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'pages/carrito.html';
         });
     }
+});
+
+// ============================================
+// MI CUENTA
+// ============================================
+
+async function renderAccountPage() {
+    if (!window.location.pathname.includes('cuenta')) return;
+
+    if (!isLoggedIn()) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    const user = getStoredUser();
+    const nameEl = document.getElementById('accountName');
+    const emailEl = document.getElementById('accountEmail');
+    if (nameEl) nameEl.textContent = user?.name || '—';
+    if (emailEl) emailEl.textContent = user?.email || '—';
+
+    const listEl = document.getElementById('ordersList');
+    if (!listEl) return;
+
+    try {
+        const result = await api.getMyTransactions();
+        const transactions = result?.transactions || [];
+
+        if (!transactions.length) {
+            listEl.innerHTML = '<p>Aún no tienes pedidos.</p>';
+            return;
+        }
+
+        listEl.innerHTML = transactions.map(t => {
+            const orderId = t.order_id || '—';
+            const status = t.status || 'pending';
+            const amount = t.amount ?? t.total_amount ?? null;
+            const createdAt = t.created_at ? new Date(t.created_at).toLocaleString() : '';
+            return `
+                <div class="order-card">
+                    <div class="order-row">
+                        <div><strong>Pedido:</strong> ${orderId}</div>
+                        <div><strong>Estado:</strong> ${status}</div>
+                    </div>
+                    <div class="order-row" style="margin-top:8px;">
+                        <div><strong>Total:</strong> ${amount !== null ? formatPrice(Number(amount)) : '—'}</div>
+                        <div>${createdAt}</div>
+                    </div>
+                    <div class="order-meta">Si necesitas ayuda, contáctanos por WhatsApp.</div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        // Si el token expiró o es inválido
+        if (String(error.message || '').toLowerCase().includes('token') || String(error.message || '').includes('401')) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            return;
+        }
+        listEl.innerHTML = '<p>No se pudieron cargar tus pedidos.</p>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderAccountPage();
 });
 
 // ============================================
@@ -404,8 +509,9 @@ if (window.location.pathname.includes('carrito')) {
             }
             
             // Obtener datos del cliente
-            const customerName = document.querySelector('input[name="name"]')?.value || 'Cliente';
-            const customerEmail = document.querySelector('input[name="email"]')?.value || '';
+            const storedUser = getStoredUser();
+            const customerName = document.querySelector('input[name="name"]')?.value || storedUser?.name || 'Cliente';
+            const customerEmail = document.querySelector('input[name="email"]')?.value || storedUser?.email || '';
             const customerPhone = document.querySelector('input[name="phone"]')?.value || '';
             const customerAddress = document.querySelector('input[name="address"]')?.value || '';
             const customerCity = document.querySelector('input[name="city"]')?.value || '';

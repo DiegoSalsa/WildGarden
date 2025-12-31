@@ -1,5 +1,32 @@
 const pool = require('../config/database');
 
+const getMyTransactions = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        const email = req.user?.email;
+
+        if (!userId && !email) {
+            return res.status(400).json({ error: 'Usuario inválido' });
+        }
+
+        // Nota: este proyecto guarda datos del cliente en transactions.customer_email.
+        // Si en tu DB existe transactions.user_id, esta query también lo considera.
+        const result = await pool.query(
+            `SELECT *
+             FROM transactions
+             WHERE (customer_email = $1)
+                OR (user_id = $2)
+             ORDER BY created_at DESC NULLS LAST, id DESC`,
+            [email || null, userId || null]
+        );
+
+        res.json({ transactions: result.rows });
+    } catch (error) {
+        console.error('Error al obtener transacciones del usuario:', error);
+        res.status(500).json({ error: 'Error al obtener transacciones' });
+    }
+};
+
 const createTransaction = async (req, res) => {
     try {
         const { order_id, amount, customer_name, customer_email, customer_phone, customer_address, customer_city, cart_items, payment_method } = req.body;
@@ -83,6 +110,7 @@ const updateTransactionStatus = async (req, res) => {
 
 module.exports = {
     createTransaction,
+    getMyTransactions,
     getTransaction,
     updateTransactionStatus
 };

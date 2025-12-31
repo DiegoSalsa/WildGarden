@@ -53,6 +53,10 @@ class APIClient {
         return this.patch(`/transactions/${orderId}/status`, { status });
     }
 
+    async getMyTransactions() {
+        return this.get('/transactions/my');
+    }
+
     // Métodos HTTP base
     async get(endpoint) {
         return this.request(endpoint, { method: 'GET' });

@@ -886,6 +886,61 @@ body {
     transform: translateY(0);
 }
 
+/* Mi Cuenta */
+.cuenta-section {
+    padding: 60px 0 80px;
+    background: var(--blanco);
+}
+
+.cuenta-box {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    gap: 30px;
+}
+
+.cuenta-title {
+    font-size: 14px;
+    letter-spacing: 2px;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.cuenta-userline {
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--texto-principal);
+}
+
+.orders-list {
+    border: 1px solid rgba(37, 48, 32, 0.18);
+    border-radius: 10px;
+    padding: 16px;
+    background: var(--blanco);
+}
+
+.order-card {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(37, 48, 32, 0.12);
+}
+
+.order-card:last-child {
+    border-bottom: none;
+}
+
+.order-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+}
+
+.order-meta {
+    color: rgba(37, 48, 32, 0.75);
+    font-size: 12px;
+    margin-top: 6px;
+}
+
 .catalog-item:hover .catalog-actions .add-to-cart {
     opacity: 1;
     transform: none;
