@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: wildgarden-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      # Opcional: restringe CORS a una o más origins separadas por coma.
+      # Ej: https://tusitio.com,https://www.tusitio.com
+      - key: CORS_ORIGIN
+        sync: false

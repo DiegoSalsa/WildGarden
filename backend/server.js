@@ -5,7 +5,13 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(cors());
+const corsOrigin = process.env.CORS_ORIGIN;
+if (corsOrigin) {
+    const allowedOrigins = corsOrigin.split(',').map(s => s.trim()).filter(Boolean);
+    app.use(cors({ origin: allowedOrigins }));
+} else {
+    app.use(cors());
+}
 app.use(express.json());
 
 // Rutas
@@ -14,6 +20,10 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/transactions', require('./routes/transactions'));
 
 // Health check
+app.get('/', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
 app.get('/api/health', (req, res) => {
     res.json({ status: 'Backend running' });
 });
