@@ -6,12 +6,38 @@ const app = express();
 
 // Middleware
 const corsOrigin = process.env.CORS_ORIGIN;
-if (corsOrigin) {
-    const allowedOrigins = corsOrigin.split(',').map(s => s.trim()).filter(Boolean);
-    app.use(cors({ origin: allowedOrigins }));
-} else {
-    app.use(cors());
-}
+const allowedOrigins = new Set(
+    (corsOrigin ? corsOrigin.split(',') : [])
+        .map(s => s.trim())
+        .filter(Boolean)
+);
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow non-browser requests (no Origin header)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.has(origin)) return callback(null, true);
+
+        // Safe defaults for our deployments
+        const isAllowedByPattern = [
+            /^https?:\/\/localhost(?::\d+)?$/,
+            /^https?:\/\/127\.0\.0\.1(?::\d+)?$/,
+            /^https:\/\/.*\.vercel\.app$/,
+            /^https:\/\/(www\.)?floreriawildgarden\.cl$/
+        ].some((re) => re.test(origin));
+
+        if (isAllowedByPattern) return callback(null, true);
+
+        return callback(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Rutas
