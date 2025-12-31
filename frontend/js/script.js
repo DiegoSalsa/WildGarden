@@ -207,6 +207,16 @@ if (searchForm) {
 document.addEventListener('DOMContentLoaded', () => {
     // Actualizar display del carrito
     updateCartDisplay();
+
+    // Botones "Verificar disponibilidad" (WhatsApp)
+    const availabilityLinks = document.querySelectorAll('.wsp-availability');
+    availabilityLinks.forEach(link => {
+        const card = link.closest('.catalog-item') || link.closest('.producto-card');
+        const name = card?.querySelector('h3')?.textContent?.trim() || 'producto';
+        const message = `Hola, quiero verificar disponibilidad de: ${name}`;
+        const url = `https://wa.me/56996744579?text=${encodeURIComponent(message)}`;
+        link.setAttribute('href', url);
+    });
     
     // Botones "Agregar al carrito"
     const addToCartButtons = document.querySelectorAll('.add-to-cart, .btn-agregar');

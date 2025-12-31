@@ -726,6 +726,15 @@ body {
     gap: 5px;
 }
 
+.footer-credits a {
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: none;
+}
+
+.footer-credits a:hover {
+    opacity: 0.85;
+}
+
 .footer-credits span {
     color: #ff6b6b;
 }
@@ -805,6 +814,44 @@ body {
     z-index: 2;
 }
 
+.catalog-actions {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+.catalog-item:hover .catalog-actions {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.wsp-availability {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    background: var(--crema);
+    color: var(--verde-muy-oscuro);
+    border: 1px solid var(--verde-muy-oscuro);
+    padding: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    border-radius: 6px;
+}
+
+.wsp-availability:hover {
+    background: var(--verde-muy-oscuro);
+    color: var(--blanco);
+}
+
 .add-to-cart {
     position: absolute;
     bottom: 20px;
@@ -824,9 +871,48 @@ body {
     border-radius: 6px;
 }
 
+.catalog-actions .add-to-cart {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    opacity: 1;
+    transform: none;
+    width: 100%;
+}
+
 .catalog-item:hover .add-to-cart {
     opacity: 1;
     transform: translateY(0);
+}
+
+.catalog-item:hover .catalog-actions .add-to-cart {
+    opacity: 1;
+    transform: none;
+}
+
+/* WhatsApp flotante */
+.whatsapp-float {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 2000;
+    background: var(--crema);
+    color: var(--verde-muy-oscuro);
+    border: 1px solid var(--verde-muy-oscuro);
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 999px;
+    text-decoration: none;
+}
+
+.whatsapp-float:hover {
+    background: var(--verde-muy-oscuro);
+    color: var(--blanco);
 }
 
 .catalog-info h3 {
@@ -1405,6 +1491,11 @@ body {
     
     .catalog-grid {
         grid-template-columns: 1fr;
+    }
+
+    .catalog-actions {
+        opacity: 1;
+        transform: none;
     }
 }
 
