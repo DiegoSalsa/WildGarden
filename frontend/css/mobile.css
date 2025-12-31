@@ -1,0 +1,45 @@
+/* Mobile Override - 2 Column Layout */
+
+@media screen and (max-width: 480px) {
+    .productos-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        grid-auto-rows: 200px !important;
+        gap: 12px !important;
+    }
+
+    .productos-grid.home-alternating {
+        grid-auto-rows: auto !important;
+    }
+
+    .productos-grid.home-alternating .home-spacer {
+        display: none;
+    }
+
+
+    .producto-card {
+        height: 200px !important;
+        margin-top: 0 !important;
+    }
+
+    .producto-large {
+        grid-column: span 1 !important;
+        grid-row: span 1 !important;
+        height: 200px !important;
+    }
+
+    .producto-square {
+        grid-column: span 1 !important;
+        grid-row: span 1 !important;
+        height: 200px !important;
+    }
+
+    .producto-wide {
+        grid-column: span 2 !important;
+        grid-row: span 1 !important;
+        height: 180px !important;
+    }
+
+    .producto-info {
+        display: none;
+    }
+}

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrito - Floreria WildGarden</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <!-- Header / Navigation -->
+    <header class="header">
+        <div class="header-content">
+            <button class="menu-toggle" id="menuToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
+            <div class="logo">
+                <a href="../index.html">wildgarden</a>
+            </div>
+            
+            <div class="header-actions">
+                <button class="search-btn" id="searchBtn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+                        <line x1="13" y1="13" x2="18" y2="18" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+                <button class="cart-btn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M3 3h2l.4 2M5.4 5h12.3l-1.7 8H7L5.4 5z" stroke="currentColor" stroke-width="1.5"/>
+                        <circle cx="8" cy="18" r="1" fill="currentColor"/>
+                        <circle cx="16" cy="18" r="1" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Navigation Menu -->
+        <nav class="nav-menu" id="navMenu">
+            <ul class="nav-links">
+                <li><a href="../index.html">Inicio</a></li>
+                <li><a href="productos.html">Productos</a></li>
+                <li><a href="../index.html#suscripciones">Suscripciones</a></li>
+                <li><a href="../index.html#contacto">Contacto</a></li>
+                <li><a href="login.html">Ingresar</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1 class="page-title">TU CARRITO</h1>
+            <p class="page-subtitle">Revisa y completa tu compra</p>
+        </div>
+    </section>
+
+    <!-- Carrito Section -->
+    <section class="carrito-section">
+        <div class="container">
+            <div class="carrito-content">
+                <div class="carrito-items">
+                    <!-- Item 1 -->
+                    <div class="carrito-item">
+                        <div class="item-image" style="background-color: #EDDECB;">
+                        </div>
+                        <div class="item-details">
+                            <h3>Ramos Mixtos Premium</h3>
+                            <p class="item-price">$24.000</p>
+                        </div>
+                        <div class="item-quantity">
+                            <button class="qty-btn">-</button>
+                            <span>1</span>
+                            <button class="qty-btn">+</button>
+                        </div>
+                        <div class="item-total">
+                            <p>$24.000</p>
+                        </div>
+                        <button class="item-remove">&times;</button>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="carrito-item">
+                        <div class="item-image" style="background-color: #EDDECB;">
+                        </div>
+                        <div class="item-details">
+                            <h3>Gift Card Workshop</h3>
+                            <p class="item-price">$62.000</p>
+                        </div>
+                        <div class="item-quantity">
+                            <button class="qty-btn">-</button>
+                            <span>2</span>
+                            <button class="qty-btn">+</button>
+                        </div>
+                        <div class="item-total">
+                            <p>$124.000</p>
+                        </div>
+                        <button class="item-remove">&times;</button>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="carrito-item">
+                        <div class="item-image" style="background-color: #EDDECB;">
+                        </div>
+                        <div class="item-details">
+                            <h3>Arreglo de Rosas Rojas</h3>
+                            <p class="item-price">$35.000</p>
+                        </div>
+                        <div class="item-quantity">
+                            <button class="qty-btn">-</button>
+                            <span>1</span>
+                            <button class="qty-btn">+</button>
+                        </div>
+                        <div class="item-total">
+                            <p>$35.000</p>
+                        </div>
+                        <button class="item-remove">&times;</button>
+                    </div>
+                </div>
+
+                <!-- Resumen de la compra -->
+                <div class="carrito-resumen">
+                    <h3>RESUMEN DE COMPRA</h3>
+                    
+                    <div class="resumen-line">
+                        <span>Subtotal:</span>
+                        <span>$183.000</span>
+                    </div>
+                    
+                    <div class="resumen-line">
+                        <span>Envío:</span>
+                        <span>$5.000</span>
+                    </div>
+                    
+                    <div class="resumen-line">
+                        <span>Impuestos:</span>
+                        <span>$28.440</span>
+                    </div>
+                    
+                    <div class="resumen-total">
+                        <span>TOTAL:</span>
+                        <span>$216.440</span>
+                    </div>
+                    
+                    <button class="btn-checkout">PROCEDER AL PAGO</button>
+                    
+                    <a href="productos.html" class="btn-continue">SEGUIR COMPRANDO</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-social">
+                    <a href="https://instagram.com/wildgarden.flores" target="_blank" class="instagram-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        </svg>
+                    </a>
+                </div>
+                
+                <div class="footer-contact">
+                    <p class="footer-title">Contáctanos</p>
+                    <p><a href="https://wa.me/56992406932" target="_blank">WhatsApp +569 9240 6932</a></p>
+                    <p><a href="mailto:info@wildgarden.cl">info@wildgarden.cl</a></p>
+                    <p><a href="https://instagram.com/wildgarden.flores" target="_blank">@wildgarden.flores</a></p>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>Copyright Floreria WildGarden - 2025. Todos los derechos reservados.</p>
+                <p class="footer-credits">creado con <span>❤</span> para la naturaleza</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-content">
+            <button class="search-close" id="searchClose">&times;</button>
+            <input type="text" class="search-input" placeholder="Buscar productos...">
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/script.js"></script>
+</body>
+</html>

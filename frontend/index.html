@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floreria WildGarden - Flores Naturales y Elegantes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header / Navigation -->
+    <header class="header">
+        <div class="header-content">
+            <button class="menu-toggle" id="menuToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
+            <div class="logo">
+                <a href="/">wildgarden</a>
+            </div>
+            
+            <div class="header-actions">
+                <button class="search-btn" id="searchBtn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+                        <line x1="13" y1="13" x2="18" y2="18" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+                <button class="cart-btn">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M3 3h2l.4 2M5.4 5h12.3l-1.7 8H7L5.4 5z" stroke="currentColor" stroke-width="1.5"/>
+                        <circle cx="8" cy="18" r="1" fill="currentColor"/>
+                        <circle cx="16" cy="18" r="1" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Navigation Menu -->
+        <nav class="nav-menu" id="navMenu">
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="pages/productos.html">Productos</a></li>
+                <li><a href="#suscripciones">Suscripciones</a></li>
+                <li><a href="#contacto">Contacto</a></li>
+                <li><a href="pages/login.html">Ingresar</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <p class="hero-subtitle">Flores Naturales, Silvestre y Elegantes</p>
+            <h1 class="hero-title">WILDGARDEN<br>FLORES ÚNICAS</h1>
+            <p class="hero-description">Cada flor con su propia historia<br>Descubre nuestra colección exclusiva</p>
+        </div>
+    </section>
+
+    <!-- Productos Section -->
+    <section class="productos" id="productos">
+        <div class="container">
+            <h2 class="section-title">Nuestros Productos</h2>
+            <div class="productos-grid home-alternating">
+                <!-- Fila 1: producto | vacío -->
+                <div class="producto-card">
+                    <div class="producto-image" style="background-color: #EDDECB;">
+                    </div>
+                    <div class="producto-info">
+                        <h3 class="producto-nombre">RAMOS MIXTOS</h3>
+                        <p class="producto-precio">$25.000</p>
+                    </div>
+                </div>
+                <div class="home-spacer" aria-hidden="true"></div>
+
+                <!-- Fila 2: vacío | producto -->
+                <div class="home-spacer" aria-hidden="true"></div>
+
+                <div class="producto-card">
+                    <div class="producto-image" style="background-color: #EDDECB;">
+                        <div class="producto-badge">-12%</div>
+                        <div class="producto-overlay">
+                            <span class="producto-overlay-text">Flores frescas<br>todas las semanas</span>
+                        </div>
+                    </div>
+                    <div class="producto-info">
+                        <h3 class="producto-nombre">SUSCRIPCIÓN FLORAL</h3>
+                        <p class="producto-precio"><span class="precio-oferta">$120.000</span> <span class="precio-normal">$135.000</span></p>
+                    </div>
+                </div>
+
+                <!-- Fila 3: producto | vacío -->
+                <div class="producto-card">
+                    <div class="producto-image" style="background-color: #EDDECB;">
+                    </div>
+                    <div class="producto-info">
+                        <h3 class="producto-nombre">KIT ARMA TU CORONA</h3>
+                        <p class="producto-precio">$32.500</p>
+                    </div>
+                </div>
+                <div class="home-spacer" aria-hidden="true"></div>
+
+                <!-- Fila 4: vacío | producto -->
+                <div class="home-spacer" aria-hidden="true"></div>
+
+                <div class="producto-card">
+                    <div class="producto-image" style="background-color: #EDDECB;">
+                        <div class="producto-badge">-11%</div>
+                    </div>
+                    <div class="producto-info">
+                        <h3 class="producto-nombre">GIFT CARD WORKSHOP</h3>
+                        <p class="producto-precio"><span class="precio-oferta">$62.000</span> <span class="precio-normal">$70.000</span></p>
+                    </div>
+                </div>
+
+                <!-- Fila 5: producto | vacío -->
+                <div class="producto-card">
+                    <div class="producto-image" style="background-color: #EDDECB;">
+                    </div>
+                    <div class="producto-info">
+                        <h3 class="producto-nombre">WORKSHOP CORONA DE NAVIDAD</h3>
+                        <p class="producto-precio">$68.900</p>
+                    </div>
+                </div>
+                <div class="home-spacer" aria-hidden="true"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Galería Section -->
+    <section class="galeria">
+        <div class="galeria-grid">
+            <div class="galeria-item" style="background-color: #EDDECB;">
+            </div>
+            <div class="galeria-item galeria-featured" style="background-color: #EDDECB;">
+                <div class="galeria-text">REGALA MOMENTOS ENTRE FLORES</div>
+            </div>
+            <div class="galeria-item" style="background-color: #EDDECB;">
+            </div>
+        </div>
+    </section>
+
+    <!-- Suscripciones Section -->
+    <section class="suscripciones" id="suscripciones">
+        <div class="container-small">
+            <p class="suscripciones-subtitle">REGALA FLORES</p>
+            <h2 class="section-title-center">SUSCRIPCIONES<br>FLORALES</h2>
+            <div class="suscripciones-text">
+                <p>Con una suscripción recibes una selección de tallos de flores sin montar para que tú disfrutes del proceso creativo de colocarlas en casa y hagas tu ritual de bienestar. Suscripción inspirados en el arte del ikebana pensada para que disfrutes la belleza natural de las flores, sus gestos, poses, y movimientos.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contacto Section -->
+    <section class="contacto" id="contacto">
+        <div class="container">
+            <div class="contacto-content">
+                <div class="contacto-info">
+                    <h2 class="section-title-center">Contáctanos</h2>
+                    <div class="contacto-details">
+                        <div class="contacto-item">
+                            <h3>WhatsApp</h3>
+                            <p><a href="https://wa.me/56992406932" target="_blank">+569 9240 6932</a></p>
+                        </div>
+                        <div class="contacto-item">
+                            <h3>Email</h3>
+                            <p><a href="mailto:info@wildgarden.cl">info@wildgarden.cl</a></p>
+                        </div>
+                        <div class="contacto-item">
+                            <h3>Instagram</h3>
+                            <p><a href="https://instagram.com/wildgarden.flores" target="_blank">@wildgarden.flores</a></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="contacto-form">
+                    <form>
+                        <input type="text" placeholder="Nombre" required>
+                        <input type="email" placeholder="Email" required>
+                        <textarea placeholder="Mensaje" rows="5" required></textarea>
+                        <button type="submit" class="btn-link">Enviar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer" id="contacto">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-social">
+                    <a href="https://instagram.com/wildgarden.flores" target="_blank" class="instagram-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        </svg>
+                    </a>
+                </div>
+                
+                <div class="footer-contact">
+                    <p class="footer-title">Contáctanos</p>
+                    <p><a href="https://wa.me/56992406932" target="_blank">WhatsApp +569 9240 6932</a></p>
+                    <p><a href="mailto:info@wildgarden.cl">info@wildgarden.cl</a></p>
+                    <p><a href="https://instagram.com/wildgarden.flores" target="_blank">@wildgarden.flores</a></p>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>Copyright Floreria WildGarden - 2025. Todos los derechos reservados.</p>
+                <p class="footer-credits">creado con <span>❤</span> para la naturaleza</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-content">
+            <button class="search-close" id="searchClose">&times;</button>
+            <input type="text" class="search-input" placeholder="Buscar productos...">
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>
