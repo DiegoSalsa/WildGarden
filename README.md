@@ -1,5 +1,7 @@
 # Floreria WildGarden - Tienda Online
 
+[![Ver Florería](https://img.shields.io/badge/🌸-Ir_a_Wild_Garden-pink?style=for-the-badge)](https://www.floreriawildgarden.cl/)
+
 Sitio web e-commerce para **WildGarden** - Floristería con diseño natural, silvestre y elegante.
 
 ## Estructura del Proyecto
