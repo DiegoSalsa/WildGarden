@@ -43,7 +43,7 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
     try {
-        const { product_id, name, description, price, category, image_url } = req.body;
+        const { product_id, name, description, price, category, image_url, isActive } = req.body;
 
         const admin = initFirebaseAdmin();
         const db = getDb();
@@ -55,7 +55,7 @@ const createProduct = async (req, res) => {
             price: Number(price) || 0,
             category: category || '',
             image_url: image_url || '',
-            isActive: true,
+            isActive: typeof isActive === 'boolean' ? isActive : true,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
@@ -68,8 +68,105 @@ const createProduct = async (req, res) => {
     }
 };
 
+// Admin: listar todos (activos e inactivos)
+const adminListProducts = async (req, res) => {
+    try {
+        const db = getDb();
+        const snap = await db
+            .collection('products')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const products = snap.docs.map(d => ({
+            product_id: d.id,
+            ...d.data()
+        }));
+
+        res.json({ products });
+    } catch (error) {
+        console.error('Error al obtener productos (admin):', error);
+        res.status(500).json({ error: 'Error al obtener productos' });
+    }
+};
+
+// Admin: actualizar producto
+const updateProduct = async (req, res) => {
+    try {
+        const id = req.params.product_id || req.params.id;
+        const { name, description, price, category, image_url, isActive } = req.body || {};
+
+        if (!id) {
+            return res.status(400).json({ error: 'Falta product_id' });
+        }
+
+        const admin = initFirebaseAdmin();
+        const db = getDb();
+        const ref = db.collection('products').doc(id);
+        const doc = await ref.get();
+        if (!doc.exists) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
+
+        const patch = {
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        if (typeof name === 'string') patch.name = name;
+        if (typeof description === 'string') patch.description = description;
+        if (price !== undefined) patch.price = Number(price) || 0;
+        if (typeof category === 'string') patch.category = category;
+        if (typeof image_url === 'string') patch.image_url = image_url;
+        if (typeof isActive === 'boolean') patch.isActive = isActive;
+
+        await ref.set(patch, { merge: true });
+        const updated = await ref.get();
+
+        return res.json({
+            product_id: updated.id,
+            ...updated.data()
+        });
+    } catch (error) {
+        console.error('Error al actualizar producto:', error);
+        res.status(500).json({ error: 'Error al actualizar producto' });
+    }
+};
+
+// Admin: "eliminar" lógico (isActive=false)
+const deleteProduct = async (req, res) => {
+    try {
+        const id = req.params.product_id || req.params.id;
+        if (!id) {
+            return res.status(400).json({ error: 'Falta product_id' });
+        }
+
+        const admin = initFirebaseAdmin();
+        const db = getDb();
+        const ref = db.collection('products').doc(id);
+        const doc = await ref.get();
+        if (!doc.exists) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
+
+        await ref.set(
+            {
+                isActive: false,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            },
+            { merge: true }
+        );
+
+        return res.json({ ok: true });
+    } catch (error) {
+        console.error('Error al eliminar producto:', error);
+        res.status(500).json({ error: 'Error al eliminar producto' });
+    }
+};
+
 module.exports = {
     getProducts,
     getProductById,
-    createProduct
+    createProduct,
+    adminListProducts,
+    updateProduct,
+    deleteProduct
 };

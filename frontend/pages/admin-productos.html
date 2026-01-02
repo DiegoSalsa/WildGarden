@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Productos | Floreria WildGarden</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <button class="menu-toggle" id="menuToggle">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="logo">
+                <a href="../index.html">wildgarden</a>
+            </div>
+            <div class="header-actions">
+                <button class="search-btn" id="searchBtn" aria-label="Buscar">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/>
+                        <line x1="13" y1="13" x2="18" y2="18" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                </button>
+                <button class="cart-btn" aria-label="Carrito">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M3 3h2l.4 2M5.4 5h12.3l-1.7 8H7L5.4 5z" stroke="currentColor" stroke-width="1.5"/>
+                        <circle cx="8" cy="18" r="1" fill="currentColor"/>
+                        <circle cx="16" cy="18" r="1" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <nav class="nav-menu" id="navMenu">
+            <ul class="nav-links">
+                <li><a href="../index.html">Inicio</a></li>
+                <li><a href="productos.html">Productos</a></li>
+                <li><a href="../index.html#suscripciones">Suscripciones</a></li>
+                <li><a href="../index.html#contacto">Contacto</a></li>
+                <li><a class="nav-login-link" href="login.html" data-login-href="login.html" data-logged-href="cuenta.html">Ingresar</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="page-header">
+        <div class="container">
+            <h1 class="page-title">ADMIN - PRODUCTOS</h1>
+            <p class="page-subtitle">Crear, editar y desactivar productos</p>
+        </div>
+    </section>
+
+    <section class="cuenta-section">
+        <div class="container">
+            <div class="cuenta-box">
+                <div class="cuenta-orders">
+                    <h2 class="cuenta-title">Productos</h2>
+                    <div id="adminProductsList" class="orders-list">
+                        <p>Cargando productos…</p>
+                    </div>
+                </div>
+
+                <div class="cuenta-user">
+                    <h2 class="cuenta-title">Editar / crear</h2>
+                    <div class="orders-list">
+                        <form id="adminProductForm" class="auth-form" autocomplete="off">
+                            <input type="hidden" name="product_id" id="productId">
+
+                            <div style="display:grid; gap:12px;">
+                                <input type="text" name="name" id="productName" placeholder="Nombre" required>
+                                <input type="text" name="category" id="productCategory" placeholder="Categoría">
+                                <input type="number" name="price" id="productPrice" placeholder="Precio" min="0" step="1" required>
+                                <input type="url" name="image_url" id="productImageUrl" placeholder="URL imagen (Cloudinary)">
+                                <textarea name="description" id="productDescription" placeholder="Descripción" rows="4" style="padding:12px; border:1px solid rgba(37, 48, 32, 0.18); border-radius:6px; font-family: inherit;"></textarea>
+
+                                <label style="display:flex; align-items:center; gap:10px; font-size:14px;">
+                                    <input type="checkbox" id="productIsActive" checked>
+                                    Activo
+                                </label>
+
+                                <div style="display:grid; gap:10px;">
+                                    <input type="file" id="productImageFile" accept="image/*">
+                                    <button class="btn-auth" id="btnUploadImage" type="button">Subir imagen a Cloudinary</button>
+                                </div>
+
+                                <div style="display:grid; gap:10px;">
+                                    <button class="btn-auth" id="btnSaveProduct" type="submit">Guardar producto</button>
+                                    <button class="btn-auth" id="btnClearProduct" type="button">Limpiar</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>Floreria WildGarden - 2026.</p>
+            </div>
+        </div>
+    </footer>
+
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-content">
+            <button class="search-close" id="searchClose">&times;</button>
+            <input type="text" class="search-input" placeholder="Buscar productos...">
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/script.js"></script>
+</body>
+</html>

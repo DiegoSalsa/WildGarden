@@ -66,6 +66,29 @@ class APIClient {
         return this.patch(`/admin/orders/${orderId}/status`, { status });
     }
 
+    // Admin: productos
+    async getAdminProducts() {
+        return this.get('/admin/products');
+    }
+
+    async adminCreateProduct(product) {
+        return this.post('/admin/products', product);
+    }
+
+    async adminUpdateProduct(productId, patch) {
+        return this.patch(`/admin/products/${productId}`, patch);
+    }
+
+    async adminDeleteProduct(productId) {
+        return this.request(`/admin/products/${productId}`, { method: 'DELETE' });
+    }
+
+    async adminUploadImage(file) {
+        const form = new FormData();
+        form.append('image', file);
+        return this.requestForm('/admin/upload', form);
+    }
+
     // Métodos HTTP base
     async get(endpoint) {
         return this.request(endpoint, { method: 'GET' });
@@ -105,6 +128,34 @@ class APIClient {
 
             const data = await response.json();
 
+            if (!response.ok) {
+                throw new Error(data.error || 'Error en la solicitud');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error en API:', error);
+            throw error;
+        }
+    }
+
+    async requestForm(endpoint, formData) {
+        const url = `${this.baseURL}${endpoint}`;
+        const headers = {};
+
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers,
+                body: formData
+            });
+
+            const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.error || 'Error en la solicitud');
             }

@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const { authenticateFirebaseToken, requireAdmin } = require('../middleware/firebaseAuth');
 const { adminListOrders, adminUpdateOrderStatus } = require('../controllers/transactionController');
+const { adminListProducts, createProduct, updateProduct, deleteProduct } = require('../controllers/productController');
 const { initCloudinary } = require('../config/cloudinary');
 
 const upload = multer({
@@ -12,6 +13,12 @@ const upload = multer({
 
 router.get('/orders', authenticateFirebaseToken, requireAdmin, adminListOrders);
 router.patch('/orders/:order_id/status', authenticateFirebaseToken, requireAdmin, adminUpdateOrderStatus);
+
+// Admin: productos (CRUD)
+router.get('/products', authenticateFirebaseToken, requireAdmin, adminListProducts);
+router.post('/products', authenticateFirebaseToken, requireAdmin, createProduct);
+router.patch('/products/:product_id', authenticateFirebaseToken, requireAdmin, updateProduct);
+router.delete('/products/:product_id', authenticateFirebaseToken, requireAdmin, deleteProduct);
 
 // Admin: subir imagen a Cloudinary
 router.post('/upload', authenticateFirebaseToken, requireAdmin, upload.single('image'), async (req, res) => {

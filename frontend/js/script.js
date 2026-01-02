@@ -572,6 +572,222 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================
+// ADMIN - PRODUCTOS (oculto)
+// ============================================
+
+function normalizeProduct(p) {
+    return {
+        product_id: p.product_id,
+        name: p.name || '',
+        description: p.description || '',
+        price: Number(p.price) || 0,
+        category: p.category || '',
+        image_url: p.image_url || '',
+        isActive: typeof p.isActive === 'boolean' ? p.isActive : true
+    };
+}
+
+function renderAdminProductsList(products) {
+    const listEl = document.getElementById('adminProductsList');
+    if (!listEl) return;
+
+    if (!products.length) {
+        listEl.innerHTML = '<p>No hay productos aún.</p>';
+        return;
+    }
+
+    listEl.innerHTML = products.map(p => {
+        const id = p.product_id;
+        const status = p.isActive ? 'Activo' : 'Inactivo';
+        return `
+            <div class="order-card" data-product-id="${id}">
+                <div class="order-row">
+                    <div><strong>${p.name || '—'}</strong></div>
+                    <div><strong>${formatPrice(Number(p.price) || 0)}</strong></div>
+                </div>
+                <div class="order-row" style="margin-top:8px;">
+                    <div><strong>Categoría:</strong> ${p.category || '—'}</div>
+                    <div><strong>Estado:</strong> <span class="product-status">${status}</span></div>
+                </div>
+                <div class="order-row" style="margin-top:10px; gap:10px;">
+                    <button class="btn-auth btn-edit-product" type="button">Editar</button>
+                    <button class="btn-auth btn-toggle-product" type="button">${p.isActive ? 'Desactivar' : 'Activar'}</button>
+                    <button class="btn-auth btn-delete-product" type="button">Eliminar</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function fillProductForm(product) {
+    const p = normalizeProduct(product);
+    const idEl = document.getElementById('productId');
+    const nameEl = document.getElementById('productName');
+    const categoryEl = document.getElementById('productCategory');
+    const priceEl = document.getElementById('productPrice');
+    const imageUrlEl = document.getElementById('productImageUrl');
+    const descEl = document.getElementById('productDescription');
+    const activeEl = document.getElementById('productIsActive');
+
+    if (idEl) idEl.value = p.product_id || '';
+    if (nameEl) nameEl.value = p.name;
+    if (categoryEl) categoryEl.value = p.category;
+    if (priceEl) priceEl.value = String(p.price || 0);
+    if (imageUrlEl) imageUrlEl.value = p.image_url;
+    if (descEl) descEl.value = p.description;
+    if (activeEl) activeEl.checked = !!p.isActive;
+}
+
+function clearProductForm() {
+    fillProductForm({ product_id: '', name: '', description: '', price: 0, category: '', image_url: '', isActive: true });
+    const fileEl = document.getElementById('productImageFile');
+    if (fileEl) fileEl.value = '';
+}
+
+async function renderAdminProductsPage() {
+    if (!window.location.pathname.includes('admin-productos')) return;
+
+    if (!isLoggedIn()) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    const listEl = document.getElementById('adminProductsList');
+    const formEl = document.getElementById('adminProductForm');
+    const uploadBtn = document.getElementById('btnUploadImage');
+    const clearBtn = document.getElementById('btnClearProduct');
+
+    if (!listEl || !formEl) return;
+
+    let products = [];
+
+    async function refresh() {
+        try {
+            const result = await api.getAdminProducts();
+            products = (result?.products || []).map(normalizeProduct);
+            renderAdminProductsList(products);
+            bindRowActions();
+        } catch (error) {
+            const msg = String(error?.message || '');
+            if (msg.includes('Acceso denegado') || msg.includes('403')) {
+                listEl.innerHTML = '<p>Acceso denegado. Tu usuario no es admin.</p>';
+                return;
+            }
+            listEl.innerHTML = '<p>No se pudieron cargar los productos.</p>';
+        }
+    }
+
+    function bindRowActions() {
+        listEl.querySelectorAll('.btn-edit-product').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const card = btn.closest('.order-card');
+                const id = card?.getAttribute('data-product-id');
+                const product = products.find(x => x.product_id === id);
+                if (product) {
+                    fillProductForm(product);
+                    showNotification('Producto cargado para editar', 'success');
+                }
+            });
+        });
+
+        listEl.querySelectorAll('.btn-toggle-product').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const card = btn.closest('.order-card');
+                const id = card?.getAttribute('data-product-id');
+                const product = products.find(x => x.product_id === id);
+                if (!id || !product) return;
+
+                try {
+                    await api.adminUpdateProduct(id, { isActive: !product.isActive });
+                    showNotification('Estado actualizado', 'success');
+                    await refresh();
+                } catch {
+                    showNotification('No se pudo actualizar el estado', 'error');
+                }
+            });
+        });
+
+        listEl.querySelectorAll('.btn-delete-product').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const card = btn.closest('.order-card');
+                const id = card?.getAttribute('data-product-id');
+                if (!id) return;
+
+                const ok = confirm('¿Eliminar producto? Se desactivará (no se mostrará en la tienda).');
+                if (!ok) return;
+
+                try {
+                    await api.adminDeleteProduct(id);
+                    showNotification('Producto eliminado (desactivado)', 'success');
+                    await refresh();
+                } catch {
+                    showNotification('No se pudo eliminar', 'error');
+                }
+            });
+        });
+    }
+
+    formEl.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const id = document.getElementById('productId')?.value?.trim() || '';
+        const name = document.getElementById('productName')?.value?.trim() || '';
+        const category = document.getElementById('productCategory')?.value?.trim() || '';
+        const price = Number(document.getElementById('productPrice')?.value || 0) || 0;
+        const image_url = document.getElementById('productImageUrl')?.value?.trim() || '';
+        const description = document.getElementById('productDescription')?.value || '';
+        const isActive = !!document.getElementById('productIsActive')?.checked;
+
+        try {
+            if (id) {
+                await api.adminUpdateProduct(id, { name, category, price, image_url, description, isActive });
+                showNotification('Producto actualizado', 'success');
+            } else {
+                await api.adminCreateProduct({ name, category, price, image_url, description, isActive });
+                showNotification('Producto creado', 'success');
+            }
+            clearProductForm();
+            await refresh();
+        } catch (error) {
+            showNotification('No se pudo guardar el producto', 'error');
+        }
+    });
+
+    uploadBtn?.addEventListener('click', async () => {
+        const file = document.getElementById('productImageFile')?.files?.[0];
+        if (!file) {
+            showNotification('Selecciona una imagen', 'error');
+            return;
+        }
+
+        try {
+            const result = await api.adminUploadImage(file);
+            const url = result?.url;
+            if (url) {
+                const imageUrlEl = document.getElementById('productImageUrl');
+                if (imageUrlEl) imageUrlEl.value = url;
+                showNotification('Imagen subida', 'success');
+            } else {
+                showNotification('No se recibió URL de imagen', 'error');
+            }
+        } catch {
+            showNotification('Error al subir imagen', 'error');
+        }
+    });
+
+    clearBtn?.addEventListener('click', () => {
+        clearProductForm();
+    });
+
+    clearProductForm();
+    await refresh();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderAdminProductsPage();
+});
+
+// ============================================
 // FORMULARIO DE REGISTRO
 // ============================================
 
