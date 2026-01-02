@@ -1,5 +1,15 @@
 const { getDb, initFirebaseAdmin } = require('../config/firebaseAdmin');
 
+function normalizeImageUrls(data) {
+    const urls = Array.isArray(data?.image_urls)
+        ? data.image_urls.filter(u => typeof u === 'string' && u.trim()).map(u => u.trim())
+        : [];
+
+    if (urls.length) return urls.slice(0, 3);
+    if (typeof data?.image_url === 'string' && data.image_url.trim()) return [data.image_url.trim()];
+    return [];
+}
+
 function toMillis(ts) {
     if (!ts) return 0;
     if (typeof ts.toMillis === 'function') return ts.toMillis();
@@ -18,10 +28,16 @@ const getProducts = async (req, res) => {
             .where('isActive', '==', true)
             .get();
 
-        const products = snap.docs.map(d => ({
-            product_id: d.id,
-            ...d.data()
-        }))
+        const products = snap.docs.map(d => {
+            const data = d.data() || {};
+            const image_urls = normalizeImageUrls(data);
+            return {
+                product_id: d.id,
+                ...data,
+                image_urls,
+                image_url: image_urls[0] || data.image_url || ''
+            };
+        })
             .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
 
         res.json(products);
@@ -41,9 +57,14 @@ const getProductById = async (req, res) => {
             return res.status(404).json({ error: 'Producto no encontrado' });
         }
 
+        const data = doc.data() || {};
+        const image_urls = normalizeImageUrls(data);
+
         res.json({
             product_id: doc.id,
-            ...doc.data()
+            ...data,
+            image_urls,
+            image_url: image_urls[0] || data.image_url || ''
         });
     } catch (error) {
         console.error('Error al obtener producto:', error);
@@ -53,18 +74,21 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
     try {
-        const { product_id, name, description, price, category, image_url, isActive } = req.body;
+        const { product_id, name, description, price, category, image_url, image_urls, isActive } = req.body;
 
         const admin = initFirebaseAdmin();
         const db = getDb();
         const id = product_id || db.collection('products').doc().id;
+
+        const normalizedUrls = normalizeImageUrls({ image_url, image_urls });
 
         const payload = {
             name: name || '',
             description: description || '',
             price: Number(price) || 0,
             category: category || '',
-            image_url: image_url || '',
+            image_urls: normalizedUrls,
+            image_url: normalizedUrls[0] || '',
             isActive: typeof isActive === 'boolean' ? isActive : true,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -103,7 +127,7 @@ const adminListProducts = async (req, res) => {
 const updateProduct = async (req, res) => {
     try {
         const id = req.params.product_id || req.params.id;
-        const { name, description, price, category, image_url, isActive } = req.body || {};
+        const { name, description, price, category, image_url, image_urls, isActive } = req.body || {};
 
         if (!id) {
             return res.status(400).json({ error: 'Falta product_id' });
@@ -125,7 +149,11 @@ const updateProduct = async (req, res) => {
         if (typeof description === 'string') patch.description = description;
         if (price !== undefined) patch.price = Number(price) || 0;
         if (typeof category === 'string') patch.category = category;
-        if (typeof image_url === 'string') patch.image_url = image_url;
+        if (Array.isArray(image_urls) || typeof image_url === 'string') {
+            const normalizedUrls = normalizeImageUrls({ image_url, image_urls });
+            patch.image_urls = normalizedUrls;
+            patch.image_url = normalizedUrls[0] || '';
+        }
         if (typeof isActive === 'boolean') patch.isActive = isActive;
 
         await ref.set(patch, { merge: true });

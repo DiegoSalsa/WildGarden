@@ -72,7 +72,9 @@
                                 <input type="text" name="name" id="productName" placeholder="Nombre" required>
                                 <input type="text" name="category" id="productCategory" placeholder="Categoría">
                                 <input type="number" name="price" id="productPrice" placeholder="Precio" min="0" step="1" required>
-                                <input type="url" name="image_url" id="productImageUrl" placeholder="URL imagen (Cloudinary)">
+                                <input type="url" name="image_url_1" id="productImageUrl1" placeholder="URL imagen 1 (Cloudinary)">
+                                <input type="url" name="image_url_2" id="productImageUrl2" placeholder="URL imagen 2 (Cloudinary)">
+                                <input type="url" name="image_url_3" id="productImageUrl3" placeholder="URL imagen 3 (Cloudinary)">
                                 <textarea name="description" id="productDescription" placeholder="Descripción" rows="4" style="padding:12px; border:1px solid rgba(37, 48, 32, 0.18); border-radius:6px; font-family: inherit;"></textarea>
 
                                 <label style="display:flex; align-items:center; gap:10px; font-size:14px;">
@@ -81,8 +83,8 @@
                                 </label>
 
                                 <div style="display:grid; gap:10px;">
-                                    <input type="file" id="productImageFile" accept="image/*">
-                                    <button class="btn-auth" id="btnUploadImage" type="button">Subir imagen a Cloudinary</button>
+                                    <input type="file" id="productImageFile" accept="image/*" multiple>
+                                    <button class="btn-auth" id="btnUploadImage" type="button">Subir imagen(es) a Cloudinary</button>
                                 </div>
 
                                 <div style="display:grid; gap:10px;">

@@ -592,13 +592,20 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 
 function normalizeProduct(p) {
+    const urls = Array.isArray(p.image_urls)
+        ? p.image_urls.filter(u => typeof u === 'string' && u.trim()).map(u => u.trim())
+        : [];
+    const fallback = typeof p.image_url === 'string' && p.image_url.trim() ? [p.image_url.trim()] : [];
+    const image_urls = (urls.length ? urls : fallback).slice(0, 3);
+
     return {
         product_id: p.product_id,
         name: p.name || '',
         description: p.description || '',
         price: Number(p.price) || 0,
         category: p.category || '',
-        image_url: p.image_url || '',
+        image_urls,
+        image_url: image_urls[0] || '',
         isActive: typeof p.isActive === 'boolean' ? p.isActive : true
     };
 }
@@ -641,7 +648,9 @@ function fillProductForm(product) {
     const nameEl = document.getElementById('productName');
     const categoryEl = document.getElementById('productCategory');
     const priceEl = document.getElementById('productPrice');
-    const imageUrlEl = document.getElementById('productImageUrl');
+    const imageUrl1El = document.getElementById('productImageUrl1');
+    const imageUrl2El = document.getElementById('productImageUrl2');
+    const imageUrl3El = document.getElementById('productImageUrl3');
     const descEl = document.getElementById('productDescription');
     const activeEl = document.getElementById('productIsActive');
 
@@ -649,13 +658,15 @@ function fillProductForm(product) {
     if (nameEl) nameEl.value = p.name;
     if (categoryEl) categoryEl.value = p.category;
     if (priceEl) priceEl.value = String(p.price || 0);
-    if (imageUrlEl) imageUrlEl.value = p.image_url;
+    if (imageUrl1El) imageUrl1El.value = p.image_urls[0] || '';
+    if (imageUrl2El) imageUrl2El.value = p.image_urls[1] || '';
+    if (imageUrl3El) imageUrl3El.value = p.image_urls[2] || '';
     if (descEl) descEl.value = p.description;
     if (activeEl) activeEl.checked = !!p.isActive;
 }
 
 function clearProductForm() {
-    fillProductForm({ product_id: '', name: '', description: '', price: 0, category: '', image_url: '', isActive: true });
+    fillProductForm({ product_id: '', name: '', description: '', price: 0, category: '', image_urls: [], isActive: true });
     const fileEl = document.getElementById('productImageFile');
     if (fileEl) fileEl.value = '';
 }
@@ -750,16 +761,20 @@ async function renderAdminProductsPage() {
         const name = document.getElementById('productName')?.value?.trim() || '';
         const category = document.getElementById('productCategory')?.value?.trim() || '';
         const price = Number(document.getElementById('productPrice')?.value || 0) || 0;
-        const image_url = document.getElementById('productImageUrl')?.value?.trim() || '';
+        const image_urls = [
+            document.getElementById('productImageUrl1')?.value?.trim() || '',
+            document.getElementById('productImageUrl2')?.value?.trim() || '',
+            document.getElementById('productImageUrl3')?.value?.trim() || ''
+        ].filter(Boolean).slice(0, 3);
         const description = document.getElementById('productDescription')?.value || '';
         const isActive = !!document.getElementById('productIsActive')?.checked;
 
         try {
             if (id) {
-                await api.adminUpdateProduct(id, { name, category, price, image_url, description, isActive });
+                await api.adminUpdateProduct(id, { name, category, price, image_urls, description, isActive });
                 showNotification('Producto actualizado', 'success');
             } else {
-                await api.adminCreateProduct({ name, category, price, image_url, description, isActive });
+                await api.adminCreateProduct({ name, category, price, image_urls, description, isActive });
                 showNotification('Producto creado', 'success');
             }
             clearProductForm();
@@ -770,22 +785,32 @@ async function renderAdminProductsPage() {
     });
 
     uploadBtn?.addEventListener('click', async () => {
-        const file = document.getElementById('productImageFile')?.files?.[0];
-        if (!file) {
+        const files = Array.from(document.getElementById('productImageFile')?.files || []).slice(0, 3);
+        if (!files.length) {
             showNotification('Selecciona una imagen', 'error');
             return;
         }
 
+        const urlInputs = [
+            document.getElementById('productImageUrl1'),
+            document.getElementById('productImageUrl2'),
+            document.getElementById('productImageUrl3')
+        ].filter(Boolean);
+
+        function fillNextUrl(url) {
+            const empty = urlInputs.find(i => !(i.value || '').trim());
+            if (empty) empty.value = url;
+        }
+
         try {
-            const result = await api.adminUploadImage(file);
-            const url = result?.url;
-            if (url) {
-                const imageUrlEl = document.getElementById('productImageUrl');
-                if (imageUrlEl) imageUrlEl.value = url;
-                showNotification('Imagen subida', 'success');
-            } else {
-                showNotification('No se recibió URL de imagen', 'error');
+            for (const file of files) {
+                const result = await api.adminUploadImage(file);
+                const url = result?.url;
+                if (url) {
+                    fillNextUrl(url);
+                }
             }
+            showNotification('Imagen(es) subida(s)', 'success');
         } catch {
             showNotification('Error al subir imagen', 'error');
         }
@@ -1023,6 +1048,31 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function getProductImageUrls(product) {
+    const urls = Array.isArray(product?.image_urls)
+        ? product.image_urls.filter(u => typeof u === 'string' && u.trim()).map(u => u.trim())
+        : [];
+    const fallback = typeof product?.image_url === 'string' && product.image_url.trim() ? [product.image_url.trim()] : [];
+    return (urls.length ? urls : fallback).slice(0, 3);
+}
+
+function renderCarouselHtml(imageUrls, altText) {
+    const urls = Array.isArray(imageUrls) ? imageUrls.filter(Boolean) : [];
+    const safeAlt = escapeHtml(altText || 'Producto');
+    if (!urls.length) return '';
+
+    return `
+        <div class="wg-carousel" role="group" aria-label="Imágenes del producto">
+            <div class="wg-carousel-track">
+                ${urls.map(u => {
+                    const src = escapeHtml(u);
+                    return `<div class="wg-carousel-slide"><img src="${src}" alt="${safeAlt}" loading="lazy"></div>`;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+
 function isProductsCatalogPage() {
     const path = String(window.location.pathname || '').toLowerCase();
     return path.endsWith('/productos.html') || path.endsWith('productos.html');
@@ -1050,13 +1100,14 @@ async function renderProductsCatalogFromApi() {
             const name = escapeHtml(p.name || 'Producto');
             const price = Number(p.price) || 0;
             const priceLabel = typeof formatPrice === 'function' ? formatPrice(price) : String(price);
-            const imageUrl = p.image_url ? escapeHtml(p.image_url) : '';
+            const imageUrls = getProductImageUrls(p);
+            const carousel = renderCarouselHtml(imageUrls, p.name);
 
             return `
                 <div class="catalog-item" data-product-id="${id}">
                     <a class="catalog-link" href="producto.html?id=${idParam}" aria-label="Ver ${name}">
                         <div class="catalog-image" style="background-color: #EDDECB;">
-                            ${imageUrl ? `<img src="${imageUrl}" alt="${name}" loading="lazy">` : ''}
+                            ${carousel}
                         </div>
                         <h3>${name}</h3>
                         <p class="catalog-price">${escapeHtml(priceLabel)}</p>
@@ -1108,12 +1159,13 @@ async function renderProductDetailPage() {
         const description = escapeHtml(p?.description || '');
         const price = Number(p?.price) || 0;
         const priceLabel = typeof formatPrice === 'function' ? formatPrice(price) : String(price);
-        const imageUrl = p?.image_url ? escapeHtml(p.image_url) : '';
+        const imageUrls = getProductImageUrls(p);
+        const carousel = renderCarouselHtml(imageUrls, p?.name);
 
         container.innerHTML = `
             <div class="product-detail-grid">
                 <div class="product-detail-image" style="background-color: #EDDECB;">
-                    ${imageUrl ? `<img src="${imageUrl}" alt="${name}" loading="lazy">` : ''}
+                    ${carousel}
                 </div>
                 <div class="product-detail-info">
                     <h1 class="product-detail-title">${name}</h1>
