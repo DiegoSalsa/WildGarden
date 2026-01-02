@@ -1061,6 +1061,13 @@ function renderCarouselHtml(imageUrls, altText) {
     const safeAlt = escapeHtml(altText || 'Producto');
     if (!urls.length) return '';
 
+    const nav = urls.length > 1
+        ? `
+            <button class="wg-carousel-nav wg-carousel-prev" type="button" aria-label="Imagen anterior">‹</button>
+            <button class="wg-carousel-nav wg-carousel-next" type="button" aria-label="Imagen siguiente">›</button>
+        `
+        : '';
+
     return `
         <div class="wg-carousel" role="group" aria-label="Imágenes del producto">
             <div class="wg-carousel-track">
@@ -1069,9 +1076,28 @@ function renderCarouselHtml(imageUrls, altText) {
                     return `<div class="wg-carousel-slide"><img src="${src}" alt="${safeAlt}" loading="lazy"></div>`;
                 }).join('')}
             </div>
+            ${nav}
         </div>
     `;
 }
+
+// Carrusel: flechas (desktop) para avanzar/retroceder
+document.addEventListener('click', (e) => {
+    const btn = e.target?.closest?.('.wg-carousel-nav');
+    if (!btn) return;
+
+    // Evitar navegación si el carrusel está dentro de un <a>
+    e.preventDefault();
+    e.stopPropagation();
+
+    const carousel = btn.closest('.wg-carousel');
+    const track = carousel?.querySelector('.wg-carousel-track');
+    if (!track) return;
+
+    const dir = btn.classList.contains('wg-carousel-next') ? 1 : -1;
+    const amount = track.clientWidth;
+    track.scrollBy({ left: dir * amount, behavior: 'smooth' });
+});
 
 function isProductsCatalogPage() {
     const path = String(window.location.pathname || '').toLowerCase();

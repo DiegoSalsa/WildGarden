@@ -810,6 +810,7 @@ body.menu-open {
 .wg-carousel {
     width: 100%;
     height: 100%;
+    position: relative;
 }
 
 .wg-carousel-track {
@@ -840,6 +841,45 @@ body.menu-open {
     height: 100%;
     object-fit: cover;
     display: block;
+}
+
+.wg-carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.35);
+    color: var(--blanco);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 3;
+    display: none; /* default: hidden (mobile) */
+    line-height: 38px;
+    font-size: 22px;
+    text-align: center;
+}
+
+.wg-carousel-prev {
+    left: 10px;
+}
+
+.wg-carousel-next {
+    right: 10px;
+}
+
+/* Mostrar flechas solo en desktop (mouse/trackpad) */
+@media (hover: hover) and (pointer: fine) {
+    .wg-carousel-nav {
+        display: block;
+    }
+
+    .wg-carousel:hover .wg-carousel-nav {
+        opacity: 1;
+    }
 }
 
 .catalog-badge {
