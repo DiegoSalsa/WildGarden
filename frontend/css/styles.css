@@ -896,12 +896,6 @@ body.menu-open {
     }
 }
 
-/* Home: mostrar flechas también en móvil para indicar carrusel */
-.productos-grid.home-alternating .wg-carousel-nav {
-    display: block;
-    opacity: 0.9;
-}
-
 .catalog-badge {
     position: absolute;
     top: 15px;
@@ -2134,7 +2128,7 @@ html {
     }
 
     .productos-grid.home-alternating .home-spacer {
-        display: none !important;
+        display: block !important;
     }
 
     .productos-grid.home-alternating .producto-card {
