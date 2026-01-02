@@ -30,3 +30,13 @@ services:
         sync: false
       - key: FIREBASE_STORAGE_BUCKET
         sync: false
+
+      # Cloudinary (imágenes)
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_FOLDER
+        sync: false
