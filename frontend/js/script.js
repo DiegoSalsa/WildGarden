@@ -353,7 +353,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cartBtn) {
         cartBtn.addEventListener('click', () => {
             if (window.location.pathname.includes('carrito')) return;
-            window.location.href = 'pages/carrito.html';
+            const inPages = window.location.pathname.includes('/pages/');
+            window.location.href = inPages ? 'carrito.html' : 'pages/carrito.html';
         });
     }
 });
@@ -930,15 +931,19 @@ if (window.location.pathname.includes('carrito')) {
         const totalPrice = cart.getTotal();
         const shippingCost = 5000;
         const finalTotal = totalPrice + shippingCost;
-        
-        const totalElement = document.querySelector('.carrito-total-precio');
-        if (totalElement) {
-            totalElement.textContent = formatPrice(finalTotal);
-        }
+
+        const subtotalEl = document.querySelector('.carrito-subtotal-precio');
+        if (subtotalEl) subtotalEl.textContent = formatPrice(totalPrice);
+
+        const shippingEl = document.querySelector('.carrito-envio-precio');
+        if (shippingEl) shippingEl.textContent = formatPrice(shippingCost);
+
+        const totalEl = document.querySelector('.carrito-total-precio');
+        if (totalEl) totalEl.textContent = formatPrice(finalTotal);
     }
     
     function setupCheckout() {
-        const checkoutBtn = document.querySelector('.checkout-btn, .btn-pagar, [type="submit"]');
+        const checkoutBtn = document.querySelector('.btn-checkout, .checkout-btn, .btn-pagar, [type="submit"]');
         if (!checkoutBtn) return;
         
         checkoutBtn.addEventListener('click', async (e) => {
