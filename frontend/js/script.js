@@ -945,6 +945,8 @@ if (window.location.pathname.includes('carrito')) {
     function setupCheckout() {
         const checkoutBtn = document.querySelector('.btn-checkout, .checkout-btn, .btn-pagar, [type="submit"]');
         if (!checkoutBtn) return;
+
+        const WEBPAY_URL = 'https://www.webpay.cl/form-pay/197981?utm_source=ig&utm_medium=social&utm_content=link_in_bio';
         
         checkoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
@@ -954,7 +956,7 @@ if (window.location.pathname.includes('carrito')) {
                 return;
             }
             
-            // Obtener datos del cliente
+            // Obtener datos del cliente (si existen)
             const storedUser = getStoredUser();
             const customerName = document.querySelector('input[name="name"]')?.value || storedUser?.name || 'Cliente';
             const customerEmail = document.querySelector('input[name="email"]')?.value || storedUser?.email || '';
@@ -962,18 +964,14 @@ if (window.location.pathname.includes('carrito')) {
             const customerAddress = document.querySelector('input[name="address"]')?.value || '';
             const customerCity = document.querySelector('input[name="city"]')?.value || '';
             
-            if (!customerEmail) {
-                showNotification('Por favor completa tu email', 'error');
-                return;
-            }
-            
             try {
                 const orderId = generateOrderId();
                 const totalPrice = cart.getTotal();
                 const shippingCost = 5000;
                 const finalTotal = totalPrice + shippingCost;
-                
-                const transaction = await api.createTransaction({
+
+                // Registrar pedido interno (para el admin). No bloquea por email.
+                await api.createTransaction({
                     order_id: orderId,
                     amount: finalTotal,
                     customer_name: customerName,
@@ -984,14 +982,27 @@ if (window.location.pathname.includes('carrito')) {
                     cart_items: cart.items,
                     payment_method: 'webpay'
                 });
-                
-                showNotification('Orden creada exitosamente', 'success');
-                cart.clear();
-                
-                // Redirigir a página de pago o confirmación
+
+                // Facilitar el pago: copiar monto y llevar al link
+                const amountToCopy = String(Math.round(finalTotal));
+                const clipboardWrite = navigator.clipboard?.writeText?.bind(navigator.clipboard);
+                if (clipboardWrite) {
+                    try {
+                        await clipboardWrite(amountToCopy);
+                        showNotification(`Monto copiado: ${formatPrice(finalTotal)}. Pégalo en Webpay.`, 'success');
+                    } catch {
+                        // Fallback: prompt permite copiar manualmente en muchos navegadores
+                        window.prompt('Monto a pagar (copia y pega en Webpay):', amountToCopy);
+                    }
+                } else {
+                    // Fallback sin Clipboard API
+                    window.prompt('Monto a pagar (copia y pega en Webpay):', amountToCopy);
+                }
+
+                // Nota: este formulario de Webpay requiere que el cliente ingrese el monto manualmente.
                 setTimeout(() => {
-                    window.location.href = '../index.html?order=' + orderId;
-                }, 2000);
+                    window.location.href = WEBPAY_URL;
+                }, 600);
             } catch (error) {
                 showNotification('Error al crear la orden: ' + error.message, 'error');
             }
