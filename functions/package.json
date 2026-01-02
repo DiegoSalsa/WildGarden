@@ -1,0 +1,13 @@
+{
+  "name": "wildgarden-functions",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "18"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^4.7.0",
+    "resend": "^4.0.0"
+  }
+}
