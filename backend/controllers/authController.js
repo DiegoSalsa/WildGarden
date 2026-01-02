@@ -58,6 +58,11 @@ const register = async (req, res) => {
     } catch (error) {
         console.error('Error en registro:', error);
         const message = String(error?.message || 'Error al registrar usuario');
+        if (message.includes('There is no configuration corresponding to the provided identifier')) {
+            return res.status(500).json({
+                error: 'Firebase Authentication no está habilitado/configurado. Ve a Firebase Console → Authentication → Get started y habilita Email/Password.'
+            });
+        }
         if (message.includes('email') && message.includes('already')) {
             return res.status(400).json({ error: 'El email ya está registrado' });
         }
@@ -99,6 +104,11 @@ const login = async (req, res) => {
     } catch (error) {
         console.error('Error en login:', error);
         const message = String(error?.message || 'Error al iniciar sesión');
+        if (message.includes('There is no configuration corresponding to the provided identifier')) {
+            return res.status(500).json({
+                error: 'Firebase Authentication no está habilitado/configurado. Ve a Firebase Console → Authentication → Get started y habilita Email/Password.'
+            });
+        }
         if (message.includes('INVALID_PASSWORD') || message.includes('EMAIL_NOT_FOUND')) {
             return res.status(401).json({ error: 'Email o contraseña incorrectos' });
         }

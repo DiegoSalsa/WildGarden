@@ -32,6 +32,11 @@ async function main() {
 }
 
 main().catch((err) => {
-    console.error('Error:', err?.message || err);
+    const message = String(err?.message || err);
+    if (message.includes('There is no configuration corresponding to the provided identifier')) {
+        console.error('Error: Firebase Authentication no está habilitado/configurado. Ve a Firebase Console → Authentication → Get started y habilita Email/Password.');
+        process.exit(1);
+    }
+    console.error('Error:', message);
     process.exit(1);
 });
