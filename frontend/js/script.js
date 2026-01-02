@@ -1218,6 +1218,7 @@ function initCarouselLazyLoading(root = document) {
 }
 
 // Carrusel: flechas (desktop) para avanzar/retroceder
+// Usar capture para evitar que el click burbujee al card (y navegue al producto)
 document.addEventListener('click', (e) => {
     const btn = e.target?.closest?.('.wg-carousel-nav');
     if (!btn) return;
@@ -1236,7 +1237,7 @@ document.addEventListener('click', (e) => {
     // Si el usuario usa flechas, asumimos intención y cargamos el resto de imágenes.
     loadCarouselImagesForTrack(track);
     track.scrollBy({ left: dir * amount, behavior: 'smooth' });
-});
+}, { capture: true });
 
 function isProductsCatalogPage() {
     const path = String(window.location.pathname || '').toLowerCase();
