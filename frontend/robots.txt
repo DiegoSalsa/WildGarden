@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+Disallow: /pages/admin.html
+Disallow: /pages/admin-productos.html
+Disallow: /pages/login.html
+Disallow: /pages/registro.html
+Disallow: /pages/cuenta.html
+Disallow: /pages/carrito.html
+
+Sitemap: https://www.floreriawildgarden.cl/sitemap.xml
