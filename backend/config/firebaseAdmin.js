@@ -40,7 +40,11 @@ function initFirebaseAdmin() {
 
     const serviceAccount = getServiceAccount();
     const projectId = process.env.FIREBASE_PROJECT_ID;
-    const storageBucket = process.env.FIREBASE_STORAGE_BUCKET;
+    const useStorage = String(process.env.FIREBASE_USE_STORAGE || '').toLowerCase() === 'true';
+    const storageBucketRaw = process.env.FIREBASE_STORAGE_BUCKET;
+    const storageBucket = storageBucketRaw?.startsWith('gs://')
+        ? storageBucketRaw.slice('gs://'.length)
+        : storageBucketRaw;
 
     if (!serviceAccount) {
         throw new Error('Falta FIREBASE_SERVICE_ACCOUNT_JSON o FIREBASE_SERVICE_ACCOUNT_BASE64');
@@ -49,7 +53,7 @@ function initFirebaseAdmin() {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         projectId: projectId || serviceAccount.project_id,
-        ...(storageBucket ? { storageBucket } : {})
+        ...(useStorage && storageBucket ? { storageBucket } : {})
     });
 
     return admin;
