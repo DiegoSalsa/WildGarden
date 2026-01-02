@@ -282,6 +282,7 @@ body.menu-open {
 
 .productos-grid.home-alternating .home-spacer + .producto-card .producto-info {
     text-align: right;
+    align-items: flex-end;
 }
 
 .productos-grid.home-alternating .home-spacer {
@@ -2228,8 +2229,10 @@ html {
     }
 
     .productos-grid.home-alternating .producto-info {
-        display: block;
-        padding: 12px 0 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0;
     }
 
     /* Galería */
