@@ -2232,15 +2232,19 @@ html {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        padding: 0 8px;
+        padding: 0 4px;
         max-width: 100%;
     }
 
     .productos-grid.home-alternating .producto-nombre,
     .productos-grid.home-alternating .producto-precio {
         max-width: 100%;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+
+    .productos-grid.home-alternating .producto-nombre {
+        letter-spacing: 0.5px;
     }
 
     /* Galería */
