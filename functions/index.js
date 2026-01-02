@@ -1,4 +1,4 @@
-const functions = require('firebase-functions');
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
 const { Resend } = require('resend');
 
@@ -7,19 +7,16 @@ admin.initializeApp();
 const REGION = process.env.FUNCTION_REGION || 'southamerica-east1';
 
 function getConfig() {
-  const cfg = functions.config?.() || {};
-
-  const resendKey = cfg.resend?.key || process.env.RESEND_API_KEY;
-  const from = cfg.mail?.from || process.env.MAIL_FROM || 'WildGarden <noreply@floreriawildgarden.cl>';
-  const replyTo = cfg.mail?.reply_to || process.env.MAIL_REPLY_TO || 'wildgardenccp@gmail.com';
-
+  const resendKey = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM || 'WildGarden <noreply@floreriawildgarden.cl>';
+  const replyTo = process.env.MAIL_REPLY_TO || 'wildgardenccp@gmail.com';
   return { resendKey, from, replyTo };
 }
 
 function getResendClient() {
   const { resendKey } = getConfig();
   if (!resendKey) {
-    throw new Error('Falta RESEND_API_KEY (o functions:config:set resend.key=...)');
+    throw new Error('Falta RESEND_API_KEY. Configúralo como Secret: firebase functions:secrets:set RESEND_API_KEY');
   }
   return new Resend(resendKey);
 }
@@ -121,80 +118,95 @@ function buildOrderConfirmationEmailHtml({ orderId, order }) {
   `;
 }
 
-exports.sendWelcomeEmail = functions
-  .region(REGION)
-  .auth.user()
-  .onCreate(async (user) => {
-    const email = user.email;
-    if (!email) return;
+exports.sendWelcomeEmail = onDocumentCreated(
+    {
+      region: REGION,
+      document: 'users/{uid}',
+      secrets: ['RESEND_API_KEY']
+    },
+    async (event) => {
+      const snap = event.data;
+      if (!snap) return;
 
-    const resend = getResendClient();
-    const { from, replyTo } = getConfig();
+      const uid = event.params.uid;
+      const data = snap.data() || {};
 
-    const displayName = user.displayName || '';
+      const email = String(data.email || '').trim();
+      if (!email) return;
 
-    // Marcar en Firestore para trazabilidad (no obligatorio)
-    const db = admin.firestore();
-    const userRef = db.collection('users').doc(user.uid);
+      const displayName = String(data.name || data.displayName || '').trim();
 
-    await userRef.set(
-      {
-        email,
-        name: displayName,
-        emailStatus: {
-          ...(await userRef.get().then((d) => (d.exists ? d.data()?.emailStatus : {})).catch(() => ({}))),
-          welcome: {
-            status: 'sending',
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          }
-        }
-      },
-      { merge: true }
-    );
+      // Evitar duplicados si ya se marcó como enviado
+      const status = data?.emailStatus?.welcome?.status;
+      if (status === 'sent') return;
 
-    try {
-      const result = await resend.emails.send({
-        from,
-        to: email,
-        replyTo,
-        subject: 'Bienvenid@ a WildGarden',
-        html: buildWelcomeEmailHtml({ name: displayName })
-      });
+      const resend = getResendClient();
+      const { from, replyTo } = getConfig();
+
+      const userRef = admin.firestore().collection('users').doc(uid);
 
       await userRef.set(
         {
           emailStatus: {
             welcome: {
-              status: 'sent',
-              messageId: result?.data?.id || null,
-              sentAt: admin.firestore.FieldValue.serverTimestamp()
-            }
-          }
-        },
-        { merge: true }
-      );
-    } catch (err) {
-      console.error('Welcome email error:', err);
-      await userRef.set(
-        {
-          emailStatus: {
-            welcome: {
-              status: 'error',
-              error: String(err?.message || err),
+              status: 'sending',
               updatedAt: admin.firestore.FieldValue.serverTimestamp()
             }
           }
         },
         { merge: true }
       );
-    }
-  });
 
-exports.sendOrderConfirmationEmail = functions
-  .region(REGION)
-  .firestore.document('orders/{orderId}')
-  .onCreate(async (snap, context) => {
-    const orderId = context.params.orderId;
+      try {
+        const result = await resend.emails.send({
+          from,
+          to: email,
+          replyTo,
+          subject: 'Bienvenid@ a WildGarden',
+          html: buildWelcomeEmailHtml({ name: displayName })
+        });
+
+        await userRef.set(
+          {
+            emailStatus: {
+              welcome: {
+                status: 'sent',
+                messageId: result?.data?.id || null,
+                sentAt: admin.firestore.FieldValue.serverTimestamp()
+              }
+            }
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.error('Welcome email error:', err);
+        await userRef.set(
+          {
+            emailStatus: {
+              welcome: {
+                status: 'error',
+                error: String(err?.message || err),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              }
+            }
+          },
+          { merge: true }
+        );
+      }
+    }
+  );
+
+exports.sendOrderConfirmationEmail = onDocumentCreated(
+  {
+    region: REGION,
+    document: 'orders/{orderId}',
+    secrets: ['RESEND_API_KEY']
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+
+    const orderId = event.params.orderId;
     const order = snap.data() || {};
 
     const customerEmail = String(order.customerEmail || '').trim();
@@ -258,4 +270,5 @@ exports.sendOrderConfirmationEmail = functions
         { merge: true }
       );
     }
-  });
+  }
+);

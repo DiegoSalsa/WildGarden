@@ -1,4 +1,5 @@
 const { getDb, initFirebaseAdmin } = require('../config/firebaseAdmin');
+const { sendOrderConfirmationEmail } = require('../services/emailService');
 
 const getMyTransactions = async (req, res) => {
     try {
@@ -86,6 +87,59 @@ const createTransaction = async (req, res) => {
         };
 
         await db.collection('orders').doc(id).set(order);
+
+        // Enviar confirmación por correo (no bloquea ni rompe la creación si falla)
+        void (async () => {
+            try {
+                if (!order.customerEmail) return;
+
+                const orderRef = db.collection('orders').doc(id);
+                await orderRef.set(
+                    {
+                        emailStatus: {
+                            confirmation: {
+                                status: 'sending',
+                                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                            }
+                        }
+                    },
+                    { merge: true }
+                );
+
+                const result = await sendOrderConfirmationEmail({ orderId: id, order });
+
+                await orderRef.set(
+                    {
+                        emailStatus: {
+                            confirmation: {
+                                status: 'sent',
+                                messageId: result?.data?.id || null,
+                                sentAt: admin.firestore.FieldValue.serverTimestamp()
+                            }
+                        }
+                    },
+                    { merge: true }
+                );
+            } catch (err) {
+                console.error('Order confirmation email error:', err);
+                try {
+                    await db.collection('orders').doc(id).set(
+                        {
+                            emailStatus: {
+                                confirmation: {
+                                    status: 'error',
+                                    error: String(err?.message || err),
+                                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                                }
+                            }
+                        },
+                        { merge: true }
+                    );
+                } catch (e) {
+                    console.error('Order confirmation status update error:', e);
+                }
+            }
+        })();
 
         res.status(201).json({ 
             message: 'Transacción creada',

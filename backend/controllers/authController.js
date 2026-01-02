@@ -1,4 +1,5 @@
 const { initFirebaseAdmin, getDb } = require('../config/firebaseAdmin');
+const { sendWelcomeEmail } = require('../services/emailService');
 
 const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY;
 
@@ -46,6 +47,58 @@ const register = async (req, res) => {
             },
             { merge: true }
         );
+
+        // Enviar correo de bienvenida (no bloquea ni rompe el registro si falla)
+        const uid = userRecord.uid;
+        void (async () => {
+            try {
+                const userRef = db.collection('users').doc(uid);
+                await userRef.set(
+                    {
+                        emailStatus: {
+                            welcome: {
+                                status: 'sending',
+                                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                            }
+                        }
+                    },
+                    { merge: true }
+                );
+
+                const result = await sendWelcomeEmail({ email, name: name || '' });
+
+                await userRef.set(
+                    {
+                        emailStatus: {
+                            welcome: {
+                                status: 'sent',
+                                messageId: result?.data?.id || null,
+                                sentAt: admin.firestore.FieldValue.serverTimestamp()
+                            }
+                        }
+                    },
+                    { merge: true }
+                );
+            } catch (err) {
+                console.error('Welcome email error:', err);
+                try {
+                    await db.collection('users').doc(uid).set(
+                        {
+                            emailStatus: {
+                                welcome: {
+                                    status: 'error',
+                                    error: String(err?.message || err),
+                                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                                }
+                            }
+                        },
+                        { merge: true }
+                    );
+                } catch (e) {
+                    console.error('Welcome email status update error:', e);
+                }
+            }
+        })();
 
         res.status(201).json({
             message: 'Usuario registrado exitosamente',

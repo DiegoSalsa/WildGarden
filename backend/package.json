@@ -27,7 +27,8 @@
     "firebase-admin": "^13.6.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
-    "pg": "^8.10.0"
+    "pg": "^8.10.0",
+    "resend": "^4.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
