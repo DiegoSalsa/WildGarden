@@ -1,8 +1,19 @@
 const admin = require('firebase-admin');
+const fs = require('fs');
 
 function getServiceAccount() {
+    const path = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
     const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
     const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+
+    if (path) {
+        try {
+            const json = fs.readFileSync(path, 'utf8');
+            return JSON.parse(json);
+        } catch (e) {
+            throw new Error('FIREBASE_SERVICE_ACCOUNT_PATH no se pudo leer/parsear');
+        }
+    }
 
     if (raw) {
         try {
