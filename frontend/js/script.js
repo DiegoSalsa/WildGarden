@@ -1504,6 +1504,130 @@ async function renderProductsCatalogFromApi() {
 // PRODUCTO - Página de detalle
 // ============================================
 
+function upsertMetaTag(selector, attributes) {
+    try {
+        if (!selector) return;
+        let el = document.head.querySelector(selector);
+        if (!el) {
+            el = document.createElement('meta');
+            document.head.appendChild(el);
+        }
+        Object.entries(attributes || {}).forEach(([k, v]) => {
+            if (v === undefined || v === null) return;
+            el.setAttribute(k, String(v));
+        });
+    } catch {
+        // No-op
+    }
+}
+
+function setCanonicalUrl(url) {
+    try {
+        if (!url) return;
+        let link = document.head.querySelector('link[rel="canonical"]');
+        if (!link) {
+            link = document.createElement('link');
+            link.setAttribute('rel', 'canonical');
+            document.head.appendChild(link);
+        }
+        link.setAttribute('href', String(url));
+    } catch {
+        // No-op
+    }
+}
+
+function setTextMeta(selector, content) {
+    try {
+        if (!selector) return;
+        const el = document.head.querySelector(selector);
+        if (!el) return;
+        el.setAttribute('content', String(content || ''));
+    } catch {
+        // No-op
+    }
+}
+
+function buildMetaDescriptionFromProduct(product) {
+    const raw = String(product?.description || '').trim();
+    const fallback = 'Detalles del producto en Florería WildGarden. Revisa fotos, precio y realiza tu pedido.';
+    const base = raw || fallback;
+    const suffix = base.toLowerCase().includes('concepción') ? '' : ' En Concepción.';
+    const full = `${base}${suffix}`.replace(/\s+/g, ' ').trim();
+    return full.length > 155 ? `${full.slice(0, 152).trimEnd()}...` : full;
+}
+
+function applyProductSeo({ product, productUrl, imageUrls }) {
+    try {
+        const safeName = String(product?.name || 'Producto').trim() || 'Producto';
+        const title = `${safeName} | Florería WildGarden Concepción`;
+        const description = buildMetaDescriptionFromProduct(product);
+        const ogImage = Array.isArray(imageUrls) && imageUrls.length ? String(imageUrls[0]) : '';
+
+        document.title = title;
+        setCanonicalUrl(productUrl);
+
+        // Standard meta
+        setTextMeta('meta[name="description"]', description);
+
+        // OpenGraph
+        setTextMeta('meta[property="og:title"]', title);
+        setTextMeta('meta[property="og:description"]', description);
+        setTextMeta('meta[property="og:url"]', productUrl);
+        if (ogImage) setTextMeta('meta[property="og:image"]', ogImage);
+
+        // Twitter
+        setTextMeta('meta[name="twitter:title"]', title);
+        setTextMeta('meta[name="twitter:description"]', description);
+        if (ogImage) setTextMeta('meta[name="twitter:image"]', ogImage);
+
+        // JSON-LD Product
+        const jsonLdId = 'wg-product-jsonld';
+        let jsonLdEl = document.getElementById(jsonLdId);
+        if (!jsonLdEl) {
+            jsonLdEl = document.createElement('script');
+            jsonLdEl.id = jsonLdId;
+            jsonLdEl.type = 'application/ld+json';
+            document.head.appendChild(jsonLdEl);
+        }
+
+        const price = Number(product?.price) || 0;
+        const productJsonLd = {
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            name: safeName,
+            description: String(product?.description || '').trim() || undefined,
+            image: (Array.isArray(imageUrls) && imageUrls.length) ? imageUrls.map(String) : undefined,
+            sku: String(product?.product_id || ''),
+            brand: { '@type': 'Brand', name: 'Florería WildGarden' },
+            offers: {
+                '@type': 'Offer',
+                url: String(productUrl),
+                priceCurrency: 'CLP',
+                price: price ? String(price) : undefined
+            }
+        };
+
+        // Remove undefined keys for cleanliness
+        const clean = (obj) => {
+            if (!obj || typeof obj !== 'object') return obj;
+            if (Array.isArray(obj)) return obj.map(clean).filter(v => v !== undefined);
+            Object.keys(obj).forEach(k => {
+                const v = clean(obj[k]);
+                if (v === undefined || v === '' || (typeof v === 'object' && v && !Array.isArray(v) && Object.keys(v).length === 0)) {
+                    delete obj[k];
+                } else {
+                    obj[k] = v;
+                }
+            });
+            return obj;
+        };
+
+        jsonLdEl.textContent = JSON.stringify(clean(productJsonLd));
+    } catch (e) {
+        console.warn('No se pudo aplicar SEO del producto:', e);
+    }
+}
+
 function isProductDetailPage() {
     const path = String(window.location.pathname || '').toLowerCase();
     return path.endsWith('/producto.html') || path.endsWith('producto.html');
@@ -1536,6 +1660,18 @@ async function renderProductDetailPage() {
         const priceLabel = typeof formatPrice === 'function' ? formatPrice(price) : String(price);
         const imageUrls = getProductImageUrls(p);
         const carousel = renderCarouselHtml(imageUrls, p?.name);
+
+        // SEO dinámico: canonical/meta/OG/Twitter + JSON-LD Product
+        const canonicalUrl = new URL(window.location.href);
+        canonicalUrl.hash = '';
+        // Forzar host canónico (evita duplicados www vs no-www)
+        canonicalUrl.protocol = 'https:';
+        canonicalUrl.host = 'www.floreriawildgarden.cl';
+        applyProductSeo({
+            product: p,
+            productUrl: canonicalUrl.toString(),
+            imageUrls
+        });
 
         container.innerHTML = `
             <div class="product-detail-grid">
