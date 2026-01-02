@@ -3,6 +3,30 @@ const menuToggle = document.querySelector('.menu-toggle');
 const navMenu = document.querySelector('.nav-menu');
 const navLinks = document.querySelectorAll('.nav-links a');
 
+let lockedScrollY = 0;
+
+function lockPageScroll() {
+    lockedScrollY = window.scrollY || window.pageYOffset || 0;
+    document.documentElement.classList.add('menu-open');
+    document.body.classList.add('menu-open');
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+}
+
+function unlockPageScroll() {
+    document.documentElement.classList.remove('menu-open');
+    document.body.classList.remove('menu-open');
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    window.scrollTo(0, lockedScrollY);
+}
+
 function isLoggedIn() {
     return !!localStorage.getItem('authToken');
 }
@@ -76,6 +100,13 @@ if (menuToggle) {
     menuToggle.addEventListener('click', () => {
         menuToggle.classList.toggle('active');
         navMenu.classList.toggle('active');
+
+        // Cuando el menú está abierto, bloquear scroll del body
+        if (navMenu.classList.contains('active')) {
+            lockPageScroll();
+        } else {
+            unlockPageScroll();
+        }
     });
 }
 
@@ -84,6 +115,7 @@ navLinks.forEach(link => {
     link.addEventListener('click', () => {
         menuToggle.classList.remove('active');
         navMenu.classList.remove('active');
+        unlockPageScroll();
     });
 });
 
@@ -117,6 +149,13 @@ const header = document.querySelector('.header');
 if (header) {
     window.addEventListener('scroll', () => {
         let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+        // Si el menú está abierto, mantener header visible para no interferir
+        if (navMenu && navMenu.classList.contains('active')) {
+            header.style.transform = 'translateY(0)';
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+            return;
+        }
         
         if (scrollTop > 100) {
             if (scrollTop > lastScrollTop) {
@@ -126,6 +165,8 @@ if (header) {
                 // Scrolling up
                 header.style.transform = 'translateY(0)';
             }
+        } else {
+            header.style.transform = 'translateY(0)';
         }
         
         lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;

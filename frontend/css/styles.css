@@ -23,6 +23,12 @@ body {
     background-color: var(--blanco);
 }
 
+html.menu-open,
+body.menu-open {
+    overflow: hidden;
+    height: 100%;
+}
+
 .container {
     max-width: 1400px;
     margin: 0 auto;
@@ -133,7 +139,10 @@ body {
 }
 
 .nav-menu.active {
-    max-height: 300px;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
 }
 
 .nav-links {
@@ -1758,6 +1767,10 @@ html {
         width: 100%;
         position: fixed;
         left: -100%;
+        height: calc(100vh - 70px);
+        max-height: none;
+        overflow-y: auto;
+        overflow-x: hidden;
         transition: left 0.3s ease;
     }
 
