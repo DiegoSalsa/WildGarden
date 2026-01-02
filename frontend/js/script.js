@@ -1257,6 +1257,19 @@ async function renderHomeFeaturedProducts() {
     const cards = Array.from(grid.querySelectorAll('.producto-card')).slice(0, 5);
     if (!cards.length) return;
 
+    // Evitar “flash” de contenido precargado: limpiar antes del fetch
+    grid.setAttribute('aria-busy', 'true');
+    cards.forEach((card) => {
+        const imgWrap = card.querySelector('.producto-image');
+        if (imgWrap) imgWrap.innerHTML = '';
+
+        const nameEl = card.querySelector('.producto-nombre');
+        if (nameEl) nameEl.textContent = '';
+
+        const priceEl = card.querySelector('.producto-precio');
+        if (priceEl) priceEl.textContent = '';
+    });
+
     try {
         const products = await api.getProducts();
         const items = Array.isArray(products) ? products.slice(0, 5) : [];
@@ -1346,8 +1359,10 @@ async function renderHomeFeaturedProducts() {
 
         // Lazy-load de imágenes en carruseles recién inyectados
         initCarouselLazyLoading(grid);
+        grid.removeAttribute('aria-busy');
     } catch (error) {
         console.error('Error al cargar productos destacados en home:', error);
+        grid.removeAttribute('aria-busy');
     }
 }
 
