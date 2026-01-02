@@ -628,6 +628,7 @@ function renderAdminProductsList(products) {
     listEl.innerHTML = products.map(p => {
         const id = p.product_id;
         const status = p.isActive ? 'Activo' : 'Inactivo';
+        const deleteDisabled = p.isActive ? 'disabled aria-disabled="true" title="Desactiva antes de eliminar"' : '';
         return `
             <div class="order-card" data-product-id="${id}">
                 <div class="order-row">
@@ -641,7 +642,7 @@ function renderAdminProductsList(products) {
                 <div class="order-row" style="margin-top:10px; gap:10px;">
                     <button class="btn-auth btn-edit-product" type="button">Editar</button>
                     <button class="btn-auth btn-toggle-product" type="button">${p.isActive ? 'Desactivar' : 'Activar'}</button>
-                    <button class="btn-auth btn-delete-product" type="button">Eliminar definitivamente</button>
+                    <button class="btn-auth btn-delete-product" type="button" ${deleteDisabled}>Eliminar definitivamente</button>
                 </div>
             </div>
         `;
@@ -746,12 +747,25 @@ async function renderAdminProductsPage() {
                 const id = card?.getAttribute('data-product-id');
                 if (!id) return;
 
-                const ok = confirm('¿Eliminar definitivamente este producto? Esta acción no se puede deshacer.');
+                const product = products.find(x => x.product_id === id);
+                if (product?.isActive) {
+                    showNotification('Primero desactiva el producto para poder eliminarlo definitivamente.', 'error');
+                    return;
+                }
+
+                const label = product?.name ? `\n\nProducto: ${product.name}` : '';
+                const ok = confirm(`¿Eliminar definitivamente este producto? Esta acción no se puede deshacer.${label}`);
                 if (!ok) return;
 
                 try {
                     await api.adminDeleteProduct(id);
                     showNotification('Producto eliminado definitivamente', 'success');
+
+                    // Quitar del UI inmediatamente
+                    card?.remove();
+                    products = products.filter(x => x.product_id !== id);
+
+                    // Y refrescar por seguridad
                     await refresh();
                 } catch {
                     showNotification('No se pudo eliminar', 'error');

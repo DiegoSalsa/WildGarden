@@ -1508,6 +1508,12 @@ body.menu-open {
     border-radius: 6px;
 }
 
+.btn-auth[disabled],
+.btn-auth[aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .btn-auth:hover {
     background: var(--verde-medio);
 }

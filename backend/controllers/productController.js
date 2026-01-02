@@ -184,6 +184,11 @@ const deleteProduct = async (req, res) => {
             return res.status(404).json({ error: 'Producto no encontrado' });
         }
 
+        const data = doc.data() || {};
+        if (data.isActive !== false) {
+            return res.status(400).json({ error: 'Debes desactivar el producto antes de eliminarlo definitivamente.' });
+        }
+
         await ref.delete();
 
         return res.json({ ok: true, deleted: true });
