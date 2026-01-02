@@ -2513,11 +2513,20 @@ html {
         gap: 12px !important;
     }
 
+    /* Home (alternating): no usar altura fija, porque corta nombre/precio */
+    .productos-grid.home-alternating {
+        grid-auto-rows: auto !important;
+    }
+
     .producto-card {
         height: 200px !important;
         margin-top: 0 !important;
         grid-column: auto !important;
         grid-row: auto !important;
+    }
+
+    .productos-grid.home-alternating .producto-card {
+        height: auto !important;
     }
 
     .producto-large {
