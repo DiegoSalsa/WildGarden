@@ -252,11 +252,25 @@ body.menu-open {
 
 .productos-grid.home-alternating .producto-card {
     height: auto;
+    display: flex;
+    gap: 14px;
+    align-items: stretch;
 }
 
 .productos-grid.home-alternating .producto-image {
     aspect-ratio: 2 / 3;
     border-radius: 8px;
+    height: auto;
+    flex: 0 0 60%;
+}
+
+.productos-grid.home-alternating .producto-info {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .productos-grid.home-alternating .home-spacer {
@@ -880,6 +894,12 @@ body.menu-open {
     .wg-carousel:hover .wg-carousel-nav {
         opacity: 1;
     }
+}
+
+/* Home: mostrar flechas también en móvil para indicar carrusel */
+.productos-grid.home-alternating .wg-carousel-nav {
+    display: block;
+    opacity: 0.9;
 }
 
 .catalog-badge {
@@ -2104,6 +2124,32 @@ html {
 
     .producto-precio {
         font-size: 13px;
+    }
+
+    /* Home: mantener info visible (evitar recorte por altura fija en móvil) */
+    .productos-grid.home-alternating {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 15px !important;
+    }
+
+    .productos-grid.home-alternating .home-spacer {
+        display: none !important;
+    }
+
+    .productos-grid.home-alternating .producto-card {
+        flex: unset !important;
+        height: auto !important;
+    }
+
+    .productos-grid.home-alternating .producto-image {
+        height: auto !important;
+        aspect-ratio: 2 / 3;
+    }
+
+    .productos-grid.home-alternating .producto-info {
+        display: block;
+        padding: 12px 0 0;
     }
 
     /* Galería */

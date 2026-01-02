@@ -1136,14 +1136,12 @@ async function renderHomeFeaturedProducts() {
             if (!idRaw) return;
 
             const imageUrls = getProductImageUrls(p);
-            const firstImage = imageUrls[0] || '';
+            const carousel = renderCarouselHtml(imageUrls, p?.name || 'Producto');
 
             const imgWrap = card.querySelector('.producto-image');
             if (imgWrap) {
-                // Mantener elegante: solo imagen
-                imgWrap.innerHTML = firstImage
-                    ? `<img src="${escapeHtml(firstImage)}" alt="${escapeHtml(p?.name || 'Producto')}" loading="lazy">`
-                    : '';
+                // Mantener elegante: imagen(es) con carrusel (swipe en mobile)
+                imgWrap.innerHTML = carousel;
             }
 
             const nameEl = card.querySelector('.producto-nombre');
@@ -1161,6 +1159,39 @@ async function renderHomeFeaturedProducts() {
             card.setAttribute('role', 'link');
             card.tabIndex = 0;
 
+            // Evitar navegación al hacer swipe/drag en el carrusel
+            let lastCarouselDragAt = 0;
+            const carouselEl = card.querySelector('.wg-carousel');
+            if (carouselEl) {
+                let startX = 0;
+                let startY = 0;
+                let didDrag = false;
+
+                const threshold = 8;
+
+                carouselEl.addEventListener('pointerdown', (e) => {
+                    didDrag = false;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                }, { passive: true });
+
+                carouselEl.addEventListener('pointermove', (e) => {
+                    if (didDrag) return;
+                    const dx = Math.abs(e.clientX - startX);
+                    const dy = Math.abs(e.clientY - startY);
+                    if (dx > threshold || dy > threshold) {
+                        didDrag = true;
+                    }
+                }, { passive: true });
+
+                const markDrag = () => {
+                    if (didDrag) lastCarouselDragAt = Date.now();
+                };
+
+                carouselEl.addEventListener('pointerup', markDrag, { passive: true });
+                carouselEl.addEventListener('pointercancel', markDrag, { passive: true });
+            }
+
             const go = () => {
                 window.location.href = `pages/producto.html?id=${encodeURIComponent(idRaw)}`;
             };
@@ -1168,6 +1199,7 @@ async function renderHomeFeaturedProducts() {
             card.addEventListener('click', (e) => {
                 // Evitar que un drag accidental de imagen dispare navegación
                 if (e.defaultPrevented) return;
+                if (Date.now() - lastCarouselDragAt < 450) return;
                 go();
             });
 
