@@ -12,18 +12,29 @@ const getMyTransactions = async (req, res) => {
 
         const db = getDb();
 
-        // Prefer userId; fallback to email if needed
-        let snap;
-        if (uid) {
-            snap = await db.collection('orders').where('userId', '==', uid).orderBy('createdAt', 'desc').get();
-        } else {
-            snap = await db.collection('orders').where('customerEmail', '==', email).orderBy('createdAt', 'desc').get();
+        // Traer por userId y/o por email (algunos pedidos pueden haberse creado sin userId)
+        const byIdPromise = uid
+            ? db.collection('orders').where('userId', '==', uid).limit(200).get()
+            : Promise.resolve(null);
+        const byEmailPromise = email
+            ? db.collection('orders').where('customerEmail', '==', email).limit(200).get()
+            : Promise.resolve(null);
+
+        const [byIdSnap, byEmailSnap] = await Promise.all([byIdPromise, byEmailPromise]);
+
+        const map = new Map();
+        for (const snap of [byIdSnap, byEmailSnap]) {
+            if (!snap) continue;
+            for (const d of snap.docs) {
+                map.set(d.id, { order_id: d.id, ...d.data() });
+            }
         }
 
-        const transactions = snap.docs.map(d => ({
-            order_id: d.id,
-            ...d.data()
-        }));
+        const transactions = Array.from(map.values()).sort((a, b) => {
+            const aSec = a?.createdAt?.seconds ? Number(a.createdAt.seconds) : 0;
+            const bSec = b?.createdAt?.seconds ? Number(b.createdAt.seconds) : 0;
+            return bSec - aSec;
+        });
 
         res.json({ transactions });
     } catch (error) {

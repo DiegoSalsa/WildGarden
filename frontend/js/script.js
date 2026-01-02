@@ -469,7 +469,9 @@ async function renderAccountPage() {
             const orderId = t.order_id || '—';
             const status = t.status || 'pending';
             const amount = t.amount ?? t.total_amount ?? null;
-            const createdAt = t.created_at ? new Date(t.created_at).toLocaleString() : '';
+            const createdAt = t.createdAt?.seconds
+                ? new Date(t.createdAt.seconds * 1000).toLocaleString()
+                : (t.created_at ? new Date(t.created_at).toLocaleString() : '');
             return `
                 <div class="order-card">
                     <div class="order-row">
