@@ -214,11 +214,17 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-// Producto Card Interactions
+// Producto Card Interactions (home: se usa para navegar al detalle)
 const productoCards = document.querySelectorAll('.producto-card');
 productoCards.forEach(card => {
     card.addEventListener('click', function() {
-        console.log('Producto clicked');
+        const id = this.getAttribute('data-product-id');
+        if (!id) return;
+
+        // Si estamos en home, el destino es /pages/producto.html
+        const inPages = window.location.pathname.includes('/pages/');
+        const base = inPages ? '' : 'pages/';
+        window.location.href = `${base}producto.html?id=${encodeURIComponent(id)}`;
     });
 });
 
@@ -1104,6 +1110,79 @@ function isProductsCatalogPage() {
     return path.endsWith('/productos.html') || path.endsWith('productos.html');
 }
 
+function isHomePage() {
+    const path = String(window.location.pathname || '').toLowerCase();
+    return path === '/' || path.endsWith('/index.html') || path.endsWith('index.html');
+}
+
+async function renderHomeFeaturedProducts() {
+    if (!isHomePage()) return;
+
+    const grid = document.querySelector('.productos-grid.home-alternating');
+    if (!grid) return;
+
+    const cards = Array.from(grid.querySelectorAll('.producto-card')).slice(0, 5);
+    if (!cards.length) return;
+
+    try {
+        const products = await api.getProducts();
+        const items = Array.isArray(products) ? products.slice(0, 5) : [];
+
+        items.forEach((p, idx) => {
+            const card = cards[idx];
+            if (!card) return;
+
+            const idRaw = String(p?.product_id || '');
+            if (!idRaw) return;
+
+            const imageUrls = getProductImageUrls(p);
+            const firstImage = imageUrls[0] || '';
+
+            const imgWrap = card.querySelector('.producto-image');
+            if (imgWrap) {
+                // Mantener elegante: solo imagen
+                imgWrap.innerHTML = firstImage
+                    ? `<img src="${escapeHtml(firstImage)}" alt="${escapeHtml(p?.name || 'Producto')}" loading="lazy">`
+                    : '';
+            }
+
+            const nameEl = card.querySelector('.producto-nombre');
+            if (nameEl) nameEl.textContent = String(p?.name || 'Producto');
+
+            const priceEl = card.querySelector('.producto-precio');
+            if (priceEl) {
+                const price = Number(p?.price) || 0;
+                priceEl.textContent = typeof formatPrice === 'function' ? formatPrice(price) : String(price);
+            }
+
+            card.dataset.productId = idRaw;
+            card.dataset.boundHomeLink = '1';
+            card.style.cursor = 'pointer';
+            card.setAttribute('role', 'link');
+            card.tabIndex = 0;
+
+            const go = () => {
+                window.location.href = `pages/producto.html?id=${encodeURIComponent(idRaw)}`;
+            };
+
+            card.addEventListener('click', (e) => {
+                // Evitar que un drag accidental de imagen dispare navegación
+                if (e.defaultPrevented) return;
+                go();
+            });
+
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    go();
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Error al cargar productos destacados en home:', error);
+    }
+}
+
 async function renderProductsCatalogFromApi() {
     if (!isProductsCatalogPage()) return;
 
@@ -1224,6 +1303,7 @@ async function renderProductDetailPage() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    renderHomeFeaturedProducts();
     renderProductsCatalogFromApi();
     renderProductDetailPage();
 });
