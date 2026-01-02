@@ -169,7 +169,7 @@ const updateProduct = async (req, res) => {
     }
 };
 
-// Admin: "eliminar" lógico (isActive=false)
+// Admin: eliminar definitivo
 const deleteProduct = async (req, res) => {
     try {
         const id = req.params.product_id || req.params.id;
@@ -177,7 +177,6 @@ const deleteProduct = async (req, res) => {
             return res.status(400).json({ error: 'Falta product_id' });
         }
 
-        const admin = initFirebaseAdmin();
         const db = getDb();
         const ref = db.collection('products').doc(id);
         const doc = await ref.get();
@@ -185,15 +184,9 @@ const deleteProduct = async (req, res) => {
             return res.status(404).json({ error: 'Producto no encontrado' });
         }
 
-        await ref.set(
-            {
-                isActive: false,
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            },
-            { merge: true }
-        );
+        await ref.delete();
 
-        return res.json({ ok: true });
+        return res.json({ ok: true, deleted: true });
     } catch (error) {
         console.error('Error al eliminar producto:', error);
         res.status(500).json({ error: 'Error al eliminar producto' });

@@ -641,7 +641,7 @@ function renderAdminProductsList(products) {
                 <div class="order-row" style="margin-top:10px; gap:10px;">
                     <button class="btn-auth btn-edit-product" type="button">Editar</button>
                     <button class="btn-auth btn-toggle-product" type="button">${p.isActive ? 'Desactivar' : 'Activar'}</button>
-                    <button class="btn-auth btn-delete-product" type="button">Eliminar</button>
+                    <button class="btn-auth btn-delete-product" type="button">Eliminar definitivamente</button>
                 </div>
             </div>
         `;
@@ -746,12 +746,12 @@ async function renderAdminProductsPage() {
                 const id = card?.getAttribute('data-product-id');
                 if (!id) return;
 
-                const ok = confirm('¿Eliminar producto? Se desactivará (no se mostrará en la tienda).');
+                const ok = confirm('¿Eliminar definitivamente este producto? Esta acción no se puede deshacer.');
                 if (!ok) return;
 
                 try {
                     await api.adminDeleteProduct(id);
-                    showNotification('Producto eliminado (desactivado)', 'success');
+                    showNotification('Producto eliminado definitivamente', 'success');
                     await refresh();
                 } catch {
                     showNotification('No se pudo eliminar', 'error');
