@@ -1,18 +1,28 @@
 const { getDb, initFirebaseAdmin } = require('../config/firebaseAdmin');
 
+function toMillis(ts) {
+    if (!ts) return 0;
+    if (typeof ts.toMillis === 'function') return ts.toMillis();
+    if (typeof ts.seconds === 'number') return ts.seconds * 1000;
+    if (typeof ts._seconds === 'number') return ts._seconds * 1000;
+    return 0;
+}
+
 const getProducts = async (req, res) => {
     try {
         const db = getDb();
+        // Nota: where + orderBy en distinto campo requiere índice compuesto en Firestore.
+        // Para evitar depender de índices, consultamos y ordenamos en memoria.
         const snap = await db
             .collection('products')
             .where('isActive', '==', true)
-            .orderBy('createdAt', 'desc')
             .get();
 
         const products = snap.docs.map(d => ({
             product_id: d.id,
             ...d.data()
-        }));
+        }))
+            .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
 
         res.json(products);
     } catch (error) {
