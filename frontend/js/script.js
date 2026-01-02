@@ -32,11 +32,42 @@ function updateAuthLinks() {
             const loggedHref = link.getAttribute('data-logged-href');
             if (loggedHref) link.setAttribute('href', loggedHref);
         });
+
+        // Insertar botón de logout (una vez por menú)
+        const navLists = document.querySelectorAll('.nav-links');
+        navLists.forEach(ul => {
+            if (!ul.querySelector('.nav-logout-link')) {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#';
+                a.className = 'nav-logout-link';
+                a.textContent = 'Salir';
+                a.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    try {
+                        await api.logout();
+                    } finally {
+                        updateAuthLinks();
+                        // Volver al home (maneja rutas dentro de /pages)
+                        window.location.href = window.location.pathname.includes('/pages/') ? '../index.html' : 'index.html';
+                    }
+                });
+                li.appendChild(a);
+                ul.appendChild(li);
+            }
+        });
     } else {
         links.forEach(link => {
             link.textContent = 'Ingresar';
             const loginHref = link.getAttribute('data-login-href');
             if (loginHref) link.setAttribute('href', loginHref);
+        });
+
+        // Quitar logout si existe
+        document.querySelectorAll('.nav-logout-link').forEach(el => {
+            const li = el.closest('li');
+            if (li) li.remove();
+            else el.remove();
         });
     }
 }
