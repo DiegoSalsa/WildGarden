@@ -534,6 +534,40 @@ async function renderAdminOrdersPage() {
             const customer = o.customerName || o.customer_name || 'Cliente';
             const email = o.customerEmail || o.customer_email || '';
 
+            const phone = o.customerPhone || o.customer_phone || '';
+            const needsShipping = typeof o.needsShipping === 'boolean'
+                ? o.needsShipping
+                : !!o.needs_shipping;
+            const shippingCost = o.shippingCost ?? o.shipping_cost ?? null;
+            const address = o.customerAddress || o.customer_address || '';
+            const city = o.customerCity || o.customer_city || '';
+            const deliveryDate = o.deliveryDate || o.delivery_date || '';
+            const deliveryTime = o.deliveryTime || o.delivery_time || '';
+            const deliveryNotes = o.deliveryNotes || o.delivery_notes || '';
+            const paymentMethod = o.paymentMethod || o.payment_method || '';
+            const items = Array.isArray(o.items)
+                ? o.items
+                : (Array.isArray(o.cart_items) ? o.cart_items : []);
+
+            const itemsHtml = items.length
+                ? `
+                    <div style="margin-top:10px;">
+                        <div style="font-weight:600; margin-bottom:6px;">Productos:</div>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            ${items.map((it) => {
+                                const name = it?.name || it?.product_name || 'Producto';
+                                const qty = Number(it?.quantity ?? it?.qty ?? 0) || 0;
+                                const price = it?.price != null ? formatPrice(Number(it.price) || 0) : '';
+                                return `<div style="display:flex; justify-content:space-between; gap:10px;">
+                                            <div style="flex:1;">${name}</div>
+                                            <div style="white-space:nowrap;">x${qty}${price ? ` · ${price}` : ''}</div>
+                                        </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `
+                : '';
+
             return `
                 <div class="order-card" data-order-id="${orderId}">
                     <div class="order-row">
@@ -545,9 +579,29 @@ async function renderAdminOrdersPage() {
                         <div>${email}</div>
                     </div>
                     <div class="order-row" style="margin-top:8px;">
+                        <div><strong>Teléfono:</strong> ${phone || '—'}</div>
+                        <div><strong>Pago:</strong> ${paymentMethod || '—'}</div>
+                    </div>
+                    <div class="order-row" style="margin-top:8px;">
                         <div><strong>Fecha:</strong> ${createdAt}</div>
                         <div><strong>Estado:</strong> <span class="order-status">${status}</span></div>
                     </div>
+
+                    <div class="order-row" style="margin-top:8px;">
+                        <div><strong>Envío:</strong> ${needsShipping ? 'Sí' : 'No'}</div>
+                        <div><strong>Costo envío:</strong> ${shippingCost !== null && shippingCost !== undefined ? formatPrice(Number(shippingCost) || 0) : '—'}</div>
+                    </div>
+                    <div class="order-row" style="margin-top:8px;">
+                        <div><strong>Dirección:</strong> ${address || '—'}</div>
+                        <div><strong>Ciudad:</strong> ${city || '—'}</div>
+                    </div>
+                    <div class="order-row" style="margin-top:8px;">
+                        <div><strong>Fecha entrega:</strong> ${deliveryDate || '—'}</div>
+                        <div><strong>Hora entrega:</strong> ${deliveryTime || '—'}</div>
+                    </div>
+                    ${deliveryNotes ? `<div class="order-meta" style="margin-top:8px;"><strong>Notas:</strong> ${deliveryNotes}</div>` : ''}
+                    ${itemsHtml}
+
                     <div class="order-row" style="margin-top:10px; gap:10px;">
                         <select class="admin-status-select">
                             <option value="pending" ${status === 'pending' ? 'selected' : ''}>pending</option>
