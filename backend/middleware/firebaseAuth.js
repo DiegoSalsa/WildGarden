@@ -30,6 +30,31 @@ function authenticateFirebaseToken(req, res, next) {
     }
 }
 
+function authenticateFirebaseTokenOptional(req, res, next) {
+    try {
+        const header = req.headers['authorization'] || '';
+        const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+        if (!token) return next();
+
+        const admin = initFirebaseAdmin();
+        admin
+            .auth()
+            .verifyIdToken(token)
+            .then((decoded) => {
+                req.user = {
+                    uid: decoded.uid,
+                    email: decoded.email,
+                    admin: !!decoded.admin,
+                    claims: decoded
+                };
+                next();
+            })
+            .catch(() => next());
+    } catch {
+        return next();
+    }
+}
+
 function requireAdmin(req, res, next) {
     if (!req.user?.admin) {
         return res.status(403).json({ error: 'Acceso denegado' });
@@ -39,5 +64,6 @@ function requireAdmin(req, res, next) {
 
 module.exports = {
     authenticateFirebaseToken,
+    authenticateFirebaseTokenOptional,
     requireAdmin
 };
