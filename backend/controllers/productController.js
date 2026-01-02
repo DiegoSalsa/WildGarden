@@ -40,6 +40,8 @@ const getProducts = async (req, res) => {
         })
             .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
 
+        // Cache corto para mejorar percepción de carga (lista pública)
+        res.set('Cache-Control', 'public, max-age=60');
         res.json(products);
     } catch (error) {
         console.error('Error al obtener productos:', error);
@@ -60,6 +62,8 @@ const getProductById = async (req, res) => {
         const data = doc.data() || {};
         const image_urls = normalizeImageUrls(data);
 
+        // Cache corto para mejorar percepción de carga (detalle público)
+        res.set('Cache-Control', 'public, max-age=60');
         res.json({
             product_id: doc.id,
             ...data,

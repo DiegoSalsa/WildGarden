@@ -32,8 +32,32 @@ class APIClient {
     }
 
     // Métodos de productos
-    async getProducts() {
-        return this.get('/products');
+    async getProducts(forceRefresh = false) {
+        const cacheKey = 'wg_cache_products_v1';
+        const ttlMs = 60 * 1000;
+
+        if (!forceRefresh) {
+            try {
+                const raw = sessionStorage.getItem(cacheKey);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    const ts = Number(parsed?.ts) || 0;
+                    if (Array.isArray(parsed?.data) && ts && (Date.now() - ts) < ttlMs) {
+                        return parsed.data;
+                    }
+                }
+            } catch {
+                // Ignorar fallos de storage/parse
+            }
+        }
+
+        const data = await this.get('/products');
+        try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data }));
+        } catch {
+            // Ignorar si storage está lleno/bloqueado
+        }
+        return data;
     }
 
     async getProductById(id) {
@@ -72,15 +96,21 @@ class APIClient {
     }
 
     async adminCreateProduct(product) {
-        return this.post('/admin/products', product);
+        const res = await this.post('/admin/products', product);
+        try { sessionStorage.removeItem('wg_cache_products_v1'); } catch {}
+        return res;
     }
 
     async adminUpdateProduct(productId, patch) {
-        return this.patch(`/admin/products/${productId}`, patch);
+        const res = await this.patch(`/admin/products/${productId}`, patch);
+        try { sessionStorage.removeItem('wg_cache_products_v1'); } catch {}
+        return res;
     }
 
     async adminDeleteProduct(productId) {
-        return this.request(`/admin/products/${productId}`, { method: 'DELETE' });
+        const res = await this.request(`/admin/products/${productId}`, { method: 'DELETE' });
+        try { sessionStorage.removeItem('wg_cache_products_v1'); } catch {}
+        return res;
     }
 
     async adminUploadImage(file) {

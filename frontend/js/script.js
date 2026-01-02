@@ -1156,14 +1156,65 @@ function renderCarouselHtml(imageUrls, altText) {
     return `
         <div class="wg-carousel" role="group" aria-label="Imágenes del producto">
             <div class="wg-carousel-track">
-                ${urls.map(u => {
+                ${urls.map((u, idx) => {
                     const src = escapeHtml(u);
-                    return `<div class="wg-carousel-slide"><img src="${src}" alt="${safeAlt}" loading="lazy"></div>`;
+                    const srcAttr = idx === 0 ? `src="${src}"` : `data-src="${src}"`;
+                    return `<div class="wg-carousel-slide"><img ${srcAttr} alt="${safeAlt}" loading="lazy" decoding="async"></div>`;
                 }).join('')}
             </div>
             ${nav}
         </div>
     `;
+}
+
+function loadCarouselImagesForTrack(track) {
+    if (!track) return;
+    const imgs = Array.from(track.querySelectorAll('img[data-src]'));
+    imgs.forEach((img) => {
+        const src = img.getAttribute('data-src');
+        if (!src) return;
+        img.setAttribute('src', src);
+        img.removeAttribute('data-src');
+    });
+}
+
+function initCarouselLazyLoading(root = document) {
+    const tracks = Array.from(root.querySelectorAll('.wg-carousel-track'));
+    if (!tracks.length) return;
+
+    tracks.forEach((track) => {
+        if (track.dataset.lazyInit === '1') return;
+        track.dataset.lazyInit = '1';
+
+        // Si el usuario interactúa con el carrusel, cargamos el resto de imágenes de ese producto.
+        const onFirstIntent = () => {
+            loadCarouselImagesForTrack(track);
+        };
+        track.addEventListener('pointerdown', onFirstIntent, { passive: true, once: true });
+        track.addEventListener('touchstart', onFirstIntent, { passive: true, once: true });
+        track.addEventListener('wheel', onFirstIntent, { passive: true, once: true });
+
+        // Cargar cuando una slide entra al viewport del track (swipe/scroll).
+        if (typeof IntersectionObserver === 'undefined') return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const img = entry.target;
+                    const src = img.getAttribute('data-src');
+                    if (src) {
+                        img.setAttribute('src', src);
+                        img.removeAttribute('data-src');
+                    }
+                    observer.unobserve(img);
+                });
+            },
+            { root: track, threshold: 0.55 }
+        );
+
+        Array.from(track.querySelectorAll('img[data-src]')).forEach((img) => observer.observe(img));
+    });
 }
 
 // Carrusel: flechas (desktop) para avanzar/retroceder
@@ -1181,6 +1232,9 @@ document.addEventListener('click', (e) => {
 
     const dir = btn.classList.contains('wg-carousel-next') ? 1 : -1;
     const amount = track.clientWidth;
+
+    // Si el usuario usa flechas, asumimos intención y cargamos el resto de imágenes.
+    loadCarouselImagesForTrack(track);
     track.scrollBy({ left: dir * amount, behavior: 'smooth' });
 });
 
@@ -1289,6 +1343,9 @@ async function renderHomeFeaturedProducts() {
                 }
             });
         });
+
+        // Lazy-load de imágenes en carruseles recién inyectados
+        initCarouselLazyLoading(grid);
     } catch (error) {
         console.error('Error al cargar productos destacados en home:', error);
     }
@@ -1335,6 +1392,9 @@ async function renderProductsCatalogFromApi() {
 
         // re-vincular botones en contenido dinámico
         wireUpAddToCartButtons();
+
+        // Lazy-load de imágenes en carruseles recién renderizados
+        initCarouselLazyLoading(grid);
     } catch (error) {
         console.error('Error al cargar productos:', error);
         // Si falla, dejar el HTML estático existente
@@ -1394,6 +1454,9 @@ async function renderProductDetailPage() {
                 </div>
             </div>
         `;
+
+        // Lazy-load de imágenes en el carrusel de detalle (si aplica)
+        initCarouselLazyLoading(container);
 
         const addBtn = container.querySelector('.btn-add-detail');
         addBtn?.addEventListener('click', (e) => {
