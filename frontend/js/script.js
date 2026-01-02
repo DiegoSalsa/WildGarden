@@ -1044,7 +1044,9 @@ async function renderProductsCatalogFromApi() {
         }
 
         grid.innerHTML = items.map(p => {
-            const id = escapeHtml(p.product_id || '');
+            const idRaw = String(p.product_id || '');
+            const id = escapeHtml(idRaw);
+            const idParam = encodeURIComponent(idRaw);
             const name = escapeHtml(p.name || 'Producto');
             const price = Number(p.price) || 0;
             const priceLabel = typeof formatPrice === 'function' ? formatPrice(price) : String(price);
@@ -1052,21 +1054,19 @@ async function renderProductsCatalogFromApi() {
 
             return `
                 <div class="catalog-item" data-product-id="${id}">
-                    <div class="catalog-image" style="background-color: #EDDECB;">
-                        ${imageUrl ? `<img src="${imageUrl}" alt="${name}" loading="lazy">` : ''}
-                        <div class="catalog-actions">
-                            <a class="wsp-availability" href="https://wa.me/56996744579" target="_blank" rel="noopener">Verificar disponibilidad</a>
-                            <button class="add-to-cart" type="button">Agregar al carrito</button>
+                    <a class="catalog-link" href="producto.html?id=${idParam}" aria-label="Ver ${name}">
+                        <div class="catalog-image" style="background-color: #EDDECB;">
+                            ${imageUrl ? `<img src="${imageUrl}" alt="${name}" loading="lazy">` : ''}
                         </div>
-                    </div>
-                    <h3>${name}</h3>
-                    <p class="catalog-price">${escapeHtml(priceLabel)}</p>
+                        <h3>${name}</h3>
+                        <p class="catalog-price">${escapeHtml(priceLabel)}</p>
+                    </a>
+                    <button class="add-to-cart" type="button">Agregar al carrito</button>
                 </div>
             `;
         }).join('');
 
         // re-vincular botones en contenido dinámico
-        wireUpAvailabilityLinks();
         wireUpAddToCartButtons();
     } catch (error) {
         console.error('Error al cargar productos:', error);
@@ -1074,7 +1074,79 @@ async function renderProductsCatalogFromApi() {
     }
 }
 
+// ============================================
+// PRODUCTO - Página de detalle
+// ============================================
+
+function isProductDetailPage() {
+    const path = String(window.location.pathname || '').toLowerCase();
+    return path.endsWith('/producto.html') || path.endsWith('producto.html');
+}
+
+function buildWhatsAppAvailabilityUrl(productName) {
+    const name = String(productName || '').trim() || 'producto';
+    const message = `Hola, quiero verificar disponibilidad de: ${name}`;
+    return `https://wa.me/56996744579?text=${encodeURIComponent(message)}`;
+}
+
+async function renderProductDetailPage() {
+    if (!isProductDetailPage()) return;
+
+    const container = document.getElementById('productDetail');
+    if (!container) return;
+
+    const id = new URLSearchParams(window.location.search).get('id');
+    if (!id) {
+        container.innerHTML = '<p>Producto no encontrado.</p>';
+        return;
+    }
+
+    try {
+        const p = await api.getProductById(id);
+
+        const name = escapeHtml(p?.name || 'Producto');
+        const description = escapeHtml(p?.description || '');
+        const price = Number(p?.price) || 0;
+        const priceLabel = typeof formatPrice === 'function' ? formatPrice(price) : String(price);
+        const imageUrl = p?.image_url ? escapeHtml(p.image_url) : '';
+
+        container.innerHTML = `
+            <div class="product-detail-grid">
+                <div class="product-detail-image" style="background-color: #EDDECB;">
+                    ${imageUrl ? `<img src="${imageUrl}" alt="${name}" loading="lazy">` : ''}
+                </div>
+                <div class="product-detail-info">
+                    <h1 class="product-detail-title">${name}</h1>
+                    <p class="product-detail-price">${escapeHtml(priceLabel)}</p>
+                    ${description ? `<p class="product-detail-description">${description}</p>` : ''}
+                    <div class="product-detail-actions">
+                        <button class="add-to-cart btn-add-detail" type="button">Agregar al carrito</button>
+                        <a class="wsp-availability" href="${buildWhatsAppAvailabilityUrl(p?.name)}" target="_blank" rel="noopener">Verificar disponibilidad</a>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const addBtn = container.querySelector('.btn-add-detail');
+        addBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            const product = {
+                product_id: String(p?.product_id || id),
+                name: String(p?.name || 'Producto'),
+                price,
+                quantity: 1
+            };
+            cart.add(product);
+            showNotification(`${product.name} agregado al carrito`, 'success');
+        });
+    } catch (error) {
+        console.error('Error al cargar producto:', error);
+        container.innerHTML = '<p>No se pudo cargar el producto.</p>';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     renderProductsCatalogFromApi();
+    renderProductDetailPage();
 });
 
