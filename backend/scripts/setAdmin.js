@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const { initFirebaseAdmin, getDb } = require('../config/firebaseAdmin');
 
 async function main() {
