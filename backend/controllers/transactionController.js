@@ -1,26 +1,30 @@
-const pool = require('../config/database');
+const { getDb, initFirebaseAdmin } = require('../config/firebaseAdmin');
 
 const getMyTransactions = async (req, res) => {
     try {
-        const userId = req.user?.id;
+        const uid = req.user?.uid;
         const email = req.user?.email;
 
-        if (!userId && !email) {
+        if (!uid && !email) {
             return res.status(400).json({ error: 'Usuario inválido' });
         }
 
-        // Nota: este proyecto guarda datos del cliente en transactions.customer_email.
-        // Si en tu DB existe transactions.user_id, esta query también lo considera.
-        const result = await pool.query(
-            `SELECT *
-             FROM transactions
-             WHERE (customer_email = $1)
-                OR (user_id = $2)
-             ORDER BY created_at DESC NULLS LAST, id DESC`,
-            [email || null, userId || null]
-        );
+        const db = getDb();
 
-        res.json({ transactions: result.rows });
+        // Prefer userId; fallback to email if needed
+        let snap;
+        if (uid) {
+            snap = await db.collection('orders').where('userId', '==', uid).orderBy('createdAt', 'desc').get();
+        } else {
+            snap = await db.collection('orders').where('customerEmail', '==', email).orderBy('createdAt', 'desc').get();
+        }
+
+        const transactions = snap.docs.map(d => ({
+            order_id: d.id,
+            ...d.data()
+        }));
+
+        res.json({ transactions });
     } catch (error) {
         console.error('Error al obtener transacciones del usuario:', error);
         res.status(500).json({ error: 'Error al obtener transacciones' });
@@ -30,26 +34,42 @@ const getMyTransactions = async (req, res) => {
 const createTransaction = async (req, res) => {
     try {
         const { order_id, amount, customer_name, customer_email, customer_phone, customer_address, customer_city, cart_items, payment_method } = req.body;
-        
-        const result = await pool.query(
-            `INSERT INTO transactions (order_id, amount, customer_name, customer_email, customer_phone, customer_address, customer_city, cart_items, payment_method) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
-             RETURNING *`,
-            [order_id, amount, customer_name, customer_email, customer_phone, customer_address, customer_city, JSON.stringify(cart_items), payment_method]
-        );
-        
-        // Insertar items de la orden
-        for (const item of cart_items) {
-            await pool.query(
-                `INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, subtotal) 
-                 VALUES ($1, $2, $3, $4, $5, $6)`,
-                [order_id, item.product_id, item.name, item.quantity, item.price, item.quantity * item.price]
-            );
-        }
-        
+
+        const admin = initFirebaseAdmin();
+        const db = getDb();
+
+        const uid = req.user?.uid || null;
+
+        const id = order_id || db.collection('orders').doc().id;
+        const items = Array.isArray(cart_items)
+            ? cart_items.map(i => ({
+                productId: i.product_id,
+                name: i.name,
+                quantity: Number(i.quantity) || 0,
+                price: Number(i.price) || 0
+            }))
+            : [];
+
+        const order = {
+            userId: uid,
+            amount: Number(amount) || 0,
+            customerName: customer_name || '',
+            customerEmail: customer_email || '',
+            customerPhone: customer_phone || '',
+            customerAddress: customer_address || '',
+            customerCity: customer_city || '',
+            items,
+            paymentMethod: payment_method || 'webpay',
+            status: 'pending',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        await db.collection('orders').doc(id).set(order);
+
         res.status(201).json({ 
             message: 'Transacción creada',
-            transaction: result.rows[0]
+            transaction: { order_id: id, ...order }
         });
     } catch (error) {
         console.error('Error al crear transacción:', error);
@@ -60,21 +80,18 @@ const createTransaction = async (req, res) => {
 const getTransaction = async (req, res) => {
     try {
         const { order_id } = req.params;
-        
-        const result = await pool.query('SELECT * FROM transactions WHERE order_id = $1', [order_id]);
-        
-        if (result.rows.length === 0) {
+
+        const db = getDb();
+        const doc = await db.collection('orders').doc(order_id).get();
+        if (!doc.exists) {
             return res.status(404).json({ error: 'Transacción no encontrada' });
         }
-        
-        const transaction = result.rows[0];
-        
-        // Obtener items de la orden
-        const itemsResult = await pool.query('SELECT * FROM order_items WHERE order_id = $1', [order_id]);
-        
+
+        const data = doc.data();
         res.json({
-            ...transaction,
-            items: itemsResult.rows
+            order_id: doc.id,
+            ...data,
+            items: data.items || []
         });
     } catch (error) {
         console.error('Error al obtener transacción:', error);
@@ -92,25 +109,53 @@ const updateTransactionStatus = async (req, res) => {
             return res.status(400).json({ error: 'Estado inválido' });
         }
         
-        const result = await pool.query(
-            'UPDATE transactions SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE order_id = $2 RETURNING *',
-            [status, order_id]
-        );
-        
-        if (result.rows.length === 0) {
+        const admin = initFirebaseAdmin();
+        const db = getDb();
+        const ref = db.collection('orders').doc(order_id);
+        const existing = await ref.get();
+        if (!existing.exists) {
             return res.status(404).json({ error: 'Transacción no encontrada' });
         }
-        
-        res.json(result.rows[0]);
+
+        await ref.set(
+            {
+                status,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            },
+            { merge: true }
+        );
+
+        const updated = await ref.get();
+        res.json({ order_id: updated.id, ...updated.data() });
     } catch (error) {
         console.error('Error al actualizar transacción:', error);
         res.status(500).json({ error: 'Error al actualizar transacción' });
     }
 };
 
+// Admin: listar todos los pedidos
+const adminListOrders = async (req, res) => {
+    try {
+        const db = getDb();
+        const snap = await db.collection('orders').orderBy('createdAt', 'desc').limit(200).get();
+        const orders = snap.docs.map(d => ({ order_id: d.id, ...d.data() }));
+        res.json({ orders });
+    } catch (error) {
+        console.error('Error al listar pedidos (admin):', error);
+        res.status(500).json({ error: 'Error al obtener pedidos' });
+    }
+};
+
+// Admin: actualizar estado pedido
+const adminUpdateOrderStatus = async (req, res) => {
+    return updateTransactionStatus(req, res);
+};
+
 module.exports = {
     createTransaction,
     getMyTransactions,
     getTransaction,
-    updateTransactionStatus
+    updateTransactionStatus,
+    adminListOrders,
+    adminUpdateOrderStatus
 };

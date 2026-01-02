@@ -362,6 +362,99 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================
+// ADMIN - PEDIDOS
+// ============================================
+
+async function renderAdminOrdersPage() {
+    if (!window.location.pathname.includes('admin')) return;
+
+    if (!isLoggedIn()) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    const listEl = document.getElementById('adminOrdersList');
+    if (!listEl) return;
+
+    try {
+        const result = await api.getAdminOrders();
+        const orders = result?.orders || [];
+
+        if (!orders.length) {
+            listEl.innerHTML = '<p>No hay pedidos aún.</p>';
+            return;
+        }
+
+        listEl.innerHTML = orders.map(o => {
+            const orderId = o.order_id || '—';
+            const status = o.status || 'pending';
+            const amount = o.amount ?? null;
+            const createdAt = o.createdAt?.seconds
+                ? new Date(o.createdAt.seconds * 1000).toLocaleString()
+                : (o.created_at ? new Date(o.created_at).toLocaleString() : '');
+            const customer = o.customerName || o.customer_name || 'Cliente';
+            const email = o.customerEmail || o.customer_email || '';
+
+            return `
+                <div class="order-card" data-order-id="${orderId}">
+                    <div class="order-row">
+                        <div><strong>Pedido:</strong> ${orderId}</div>
+                        <div><strong>Total:</strong> ${amount !== null ? formatPrice(Number(amount)) : '—'}</div>
+                    </div>
+                    <div class="order-row" style="margin-top:8px;">
+                        <div><strong>Cliente:</strong> ${customer}</div>
+                        <div>${email}</div>
+                    </div>
+                    <div class="order-row" style="margin-top:8px;">
+                        <div><strong>Fecha:</strong> ${createdAt}</div>
+                        <div><strong>Estado:</strong> <span class="order-status">${status}</span></div>
+                    </div>
+                    <div class="order-row" style="margin-top:10px; gap:10px;">
+                        <select class="admin-status-select">
+                            <option value="pending" ${status === 'pending' ? 'selected' : ''}>pending</option>
+                            <option value="completed" ${status === 'completed' ? 'selected' : ''}>completed</option>
+                            <option value="failed" ${status === 'failed' ? 'selected' : ''}>failed</option>
+                            <option value="cancelled" ${status === 'cancelled' ? 'selected' : ''}>cancelled</option>
+                        </select>
+                        <button class="btn-auth admin-status-save" type="button">Guardar estado</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        listEl.querySelectorAll('.admin-status-save').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const card = btn.closest('.order-card');
+                const orderId = card?.getAttribute('data-order-id');
+                const select = card?.querySelector('.admin-status-select');
+                const status = select?.value;
+                if (!orderId || !status) return;
+
+                try {
+                    await api.adminUpdateOrderStatus(orderId, status);
+                    const statusEl = card.querySelector('.order-status');
+                    if (statusEl) statusEl.textContent = status;
+                    showNotification('Estado actualizado', 'success');
+                } catch (e) {
+                    showNotification('No tienes permisos de admin o hubo un error.', 'error');
+                }
+            });
+        });
+    } catch (error) {
+        const msg = String(error?.message || '');
+        if (msg.includes('Acceso denegado') || msg.includes('403')) {
+            listEl.innerHTML = '<p>Acceso denegado. Tu usuario no es admin.</p>';
+            return;
+        }
+        listEl.innerHTML = '<p>No se pudieron cargar los pedidos.</p>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderAdminOrdersPage();
+});
+
+// ============================================
 // FORMULARIO DE REGISTRO
 // ============================================
 

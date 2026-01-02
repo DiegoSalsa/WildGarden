@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const authenticateToken = require('../middleware/auth');
+const { authenticateFirebaseToken } = require('../middleware/firebaseAuth');
 const { createTransaction, getMyTransactions, getTransaction, updateTransactionStatus } = require('../controllers/transactionController');
 
-router.post('/', createTransaction);
-router.get('/my', authenticateToken, getMyTransactions);
+router.post('/', authenticateFirebaseToken, createTransaction);
+router.get('/my', authenticateFirebaseToken, getMyTransactions);
 router.get('/:order_id', getTransaction);
 router.patch('/:order_id/status', updateTransactionStatus);
 

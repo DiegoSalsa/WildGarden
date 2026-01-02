@@ -57,6 +57,15 @@ class APIClient {
         return this.get('/transactions/my');
     }
 
+    // Admin: pedidos
+    async getAdminOrders() {
+        return this.get('/admin/orders');
+    }
+
+    async adminUpdateOrderStatus(orderId, status) {
+        return this.patch(`/admin/orders/${orderId}/status`, { status });
+    }
+
     // Métodos HTTP base
     async get(endpoint) {
         return this.request(endpoint, { method: 'GET' });

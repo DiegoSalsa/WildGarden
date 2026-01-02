@@ -19,3 +19,14 @@ services:
       # Ej: https://tusitio.com,https://www.tusitio.com
       - key: CORS_ORIGIN
         sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_WEB_API_KEY
+        sync: false
+      # Recomendado: pega el JSON completo aquí (como string) o en base64.
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_BASE64
+        sync: false
+      - key: FIREBASE_STORAGE_BUCKET
+        sync: false

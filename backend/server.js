@@ -4,6 +4,13 @@ require('dotenv').config();
 
 const app = express();
 
+// Firebase Admin init (fails fast if env vars missing)
+try {
+    require('./config/firebaseAdmin').initFirebaseAdmin();
+} catch (e) {
+    console.warn('Firebase Admin no inicializado:', e.message);
+}
+
 // Middleware
 const corsOrigin = process.env.CORS_ORIGIN;
 const allowedOrigins = new Set(
@@ -44,6 +51,7 @@ app.use(express.json());
 app.use('/api/products', require('./routes/products'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/transactions', require('./routes/transactions'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Health check
 app.get('/', (req, res) => {
