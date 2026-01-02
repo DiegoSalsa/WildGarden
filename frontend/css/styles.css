@@ -1857,6 +1857,18 @@ html {
         height: 35px;
     }
 
+    /* Productos (catálogo) - 2 columnas + imágenes cuadradas */
+    .catalog-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .catalog-image {
+        height: auto;
+        aspect-ratio: 1 / 1;
+        margin-bottom: 12px;
+    }
+
     /* Hero */
     .hero {
         height: 40vh;
