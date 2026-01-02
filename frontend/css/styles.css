@@ -2223,6 +2223,11 @@ html {
         height: auto !important;
     }
 
+    /* Home alternating: dar más ancho real al texto (sin cambiar tamaño/disposición de imagen) */
+    .productos-grid.home-alternating .producto-card {
+        gap: 8px;
+    }
+
     .productos-grid.home-alternating .producto-image {
         height: auto !important;
         aspect-ratio: 2 / 3;
@@ -2232,7 +2237,7 @@ html {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        padding: 0 4px;
+        padding: 0 2px;
         max-width: 100%;
     }
 
@@ -2244,7 +2249,14 @@ html {
     }
 
     .productos-grid.home-alternating .producto-nombre {
-        letter-spacing: 0.5px;
+        font-size: 13px;
+        line-height: 1.15;
+        letter-spacing: 0.25px;
+        hyphens: auto;
+    }
+
+    .productos-grid.home-alternating .producto-precio {
+        font-size: 12px;
     }
 
     /* Galería */
