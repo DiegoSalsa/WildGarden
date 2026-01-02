@@ -40,6 +40,28 @@ function getStoredUser() {
     }
 }
 
+function decodeJwtPayload(token) {
+    try {
+        if (!token || typeof token !== 'string') return null;
+        const parts = token.split('.');
+        if (parts.length < 2) return null;
+
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+        const json = atob(padded);
+        return JSON.parse(json);
+    } catch {
+        return null;
+    }
+}
+
+function isAdminUser() {
+    const token = localStorage.getItem('authToken');
+    const claims = decodeJwtPayload(token);
+    return !!claims?.admin;
+}
+
 function updateAuthLinks() {
     const links = document.querySelectorAll('.nav-login-link');
     if (!links.length) return;
@@ -385,6 +407,29 @@ async function renderAccountPage() {
     const emailEl = document.getElementById('accountEmail');
     if (nameEl) nameEl.textContent = user?.name || '—';
     if (emailEl) emailEl.textContent = user?.email || '—';
+
+    // Link de admin (pedidos) visible solo para admin
+    const boxEl = document.querySelector('.cuenta-box');
+    if (boxEl) {
+        const existing = document.getElementById('adminTools');
+        const admin = isAdminUser();
+        if (admin && !existing) {
+            const adminEl = document.createElement('div');
+            adminEl.className = 'cuenta-admin';
+            adminEl.id = 'adminTools';
+            adminEl.innerHTML = `
+                <h2 class="cuenta-title">Admin</h2>
+                <div class="orders-list">
+                    <p style="margin-bottom:12px;">Acceso a gestión de pedidos.</p>
+                    <a class="btn-auth" href="admin.html">Ver / gestionar pedidos</a>
+                </div>
+            `;
+            boxEl.appendChild(adminEl);
+        }
+        if (!admin && existing) {
+            existing.remove();
+        }
+    }
 
     const listEl = document.getElementById('ordersList');
     if (!listEl) return;
