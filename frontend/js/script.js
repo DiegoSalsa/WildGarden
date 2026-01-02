@@ -343,42 +343,10 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartDisplay();
 
     // Botones "Verificar disponibilidad" (WhatsApp)
-    const availabilityLinks = document.querySelectorAll('.wsp-availability');
-    availabilityLinks.forEach(link => {
-        const card = link.closest('.catalog-item') || link.closest('.producto-card');
-        const name = card?.querySelector('h3')?.textContent?.trim() || 'producto';
-        const message = `Hola, quiero verificar disponibilidad de: ${name}`;
-        const url = `https://wa.me/56996744579?text=${encodeURIComponent(message)}`;
-        link.setAttribute('href', url);
-    });
+    wireUpAvailabilityLinks();
     
     // Botones "Agregar al carrito"
-    const addToCartButtons = document.querySelectorAll('.add-to-cart, .btn-agregar');
-    addToCartButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Obtener info del producto del card
-            const card = this.closest('.catalog-item') || this.closest('.producto-card');
-            if (!card) return;
-            
-            const name = card.querySelector('h3')?.textContent || 'Producto';
-            const priceText = card.querySelector('.catalog-price, .producto-precio')?.textContent || '0';
-            const price = parseInt(priceText.match(/\d+/)?.[0]) || 0;
-            
-            // Crear objeto producto
-            const product = {
-                product_id: 'prod-' + Date.now(),
-                name: name,
-                price: price,
-                quantity: 1
-            };
-            
-            // Agregar al carrito
-            cart.add(product);
-            showNotification(`${name} agregado al carrito`, 'success');
-        });
-    });
+    wireUpAddToCartButtons();
     
     // Botón del carrito (ir a carrito.html)
     const cartBtn = document.querySelector('.cart-btn');
@@ -389,6 +357,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+function wireUpAvailabilityLinks() {
+    const availabilityLinks = document.querySelectorAll('.wsp-availability');
+    availabilityLinks.forEach(link => {
+        const card = link.closest('.catalog-item') || link.closest('.producto-card');
+        const name = card?.querySelector('h3')?.textContent?.trim() || 'producto';
+        const message = `Hola, quiero verificar disponibilidad de: ${name}`;
+        const url = `https://wa.me/56996744579?text=${encodeURIComponent(message)}`;
+        link.setAttribute('href', url);
+    });
+}
+
+function parsePriceToInt(priceText) {
+    const digits = String(priceText || '').replace(/[^\d]/g, '');
+    return parseInt(digits || '0', 10) || 0;
+}
+
+function wireUpAddToCartButtons() {
+    const addToCartButtons = document.querySelectorAll('.add-to-cart, .btn-agregar');
+    addToCartButtons.forEach(button => {
+        // evitar doble binding
+        if (button.dataset.boundCart === '1') return;
+        button.dataset.boundCart = '1';
+
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const card = this.closest('.catalog-item') || this.closest('.producto-card');
+            if (!card) return;
+
+            const name = card.querySelector('h3')?.textContent?.trim() || 'Producto';
+            const priceText = card.querySelector('.catalog-price, .producto-precio')?.textContent || '0';
+            const price = parsePriceToInt(priceText);
+            const productId = card.getAttribute('data-product-id') || ('prod-' + Date.now());
+
+            const product = {
+                product_id: productId,
+                name,
+                price,
+                quantity: 1
+            };
+
+            cart.add(product);
+            showNotification(`${name} agregado al carrito`, 'success');
+        });
+    });
+}
 
 // ============================================
 // MI CUENTA
@@ -983,15 +998,67 @@ if (window.location.pathname.includes('carrito')) {
 // CARGAR PRODUCTOS DE LA BASE DE DATOS
 // ============================================
 
-if (window.location.pathname.includes('productos')) {
-    document.addEventListener('DOMContentLoaded', async () => {
-        try {
-            const products = await api.getProducts();
-            console.log('Productos cargados:', products);
-            // Aquí se pueden renderizar los productos dinámicamente si es necesario
-        } catch (error) {
-            console.error('Error al cargar productos:', error);
-        }
-    });
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
+
+function isProductsCatalogPage() {
+    const path = String(window.location.pathname || '').toLowerCase();
+    return path.endsWith('/productos.html') || path.endsWith('productos.html');
+}
+
+async function renderProductsCatalogFromApi() {
+    if (!isProductsCatalogPage()) return;
+
+    const grid = document.querySelector('.catalog-grid');
+    if (!grid) return;
+
+    try {
+        const products = await api.getProducts();
+        const items = Array.isArray(products) ? products : [];
+
+        if (!items.length) {
+            grid.innerHTML = '<p>No hay productos publicados aún.</p>';
+            return;
+        }
+
+        grid.innerHTML = items.map(p => {
+            const id = escapeHtml(p.product_id || '');
+            const name = escapeHtml(p.name || 'Producto');
+            const price = Number(p.price) || 0;
+            const priceLabel = typeof formatPrice === 'function' ? formatPrice(price) : String(price);
+            const imageUrl = p.image_url ? escapeHtml(p.image_url) : '';
+
+            return `
+                <div class="catalog-item" data-product-id="${id}">
+                    <div class="catalog-image" style="background-color: #EDDECB;">
+                        ${imageUrl ? `<img src="${imageUrl}" alt="${name}" loading="lazy">` : ''}
+                        <div class="catalog-actions">
+                            <a class="wsp-availability" href="https://wa.me/56996744579" target="_blank" rel="noopener">Verificar disponibilidad</a>
+                            <button class="add-to-cart" type="button">Agregar al carrito</button>
+                        </div>
+                    </div>
+                    <h3>${name}</h3>
+                    <p class="catalog-price">${escapeHtml(priceLabel)}</p>
+                </div>
+            `;
+        }).join('');
+
+        // re-vincular botones en contenido dinámico
+        wireUpAvailabilityLinks();
+        wireUpAddToCartButtons();
+    } catch (error) {
+        console.error('Error al cargar productos:', error);
+        // Si falla, dejar el HTML estático existente
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderProductsCatalogFromApi();
+});
 
