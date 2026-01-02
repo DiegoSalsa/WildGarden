@@ -55,6 +55,7 @@ body.menu-open {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
 }
 
 .menu-toggle {
@@ -271,6 +272,15 @@ body.menu-open {
     justify-content: center;
     flex: 1 1 auto;
     min-width: 0;
+}
+
+/* En filas donde el producto está en la columna derecha, mostrar texto a la izquierda de la imagen */
+.productos-grid.home-alternating .home-spacer + .producto-card {
+    flex-direction: row-reverse;
+}
+
+.productos-grid.home-alternating .home-spacer + .producto-card .producto-info {
+    text-align: right;
 }
 
 .productos-grid.home-alternating .home-spacer {
@@ -1821,6 +1831,17 @@ html {
     
     .header-content {
         padding: 0 20px;
+    }
+
+    /* Logo centrado en pantallas chicas (evita que quede corrido por tamaños distintos a izquierda/derecha) */
+    .logo {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .logo a {
+        white-space: nowrap;
     }
 
     /* Header */
