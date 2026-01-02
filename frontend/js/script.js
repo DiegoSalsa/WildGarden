@@ -895,8 +895,42 @@ if (loginForm && window.location.pathname.includes('login')) {
 if (window.location.pathname.includes('carrito')) {
     document.addEventListener('DOMContentLoaded', () => {
         renderCart();
+        initCheckoutDetailsForm();
         setupCheckout();
     });
+
+    function initCheckoutDetailsForm() {
+        const form = document.getElementById('checkoutDetailsForm');
+        if (!form) return;
+
+        const storedUser = getStoredUser();
+
+        const nameEl = document.getElementById('customerName');
+        const emailEl = document.getElementById('customerEmail');
+        if (nameEl && !nameEl.value) nameEl.value = storedUser?.name || '';
+        if (emailEl && !emailEl.value) emailEl.value = storedUser?.email || '';
+
+        const needsShippingEl = document.getElementById('needsShipping');
+        const shippingFieldsEl = document.getElementById('shippingFields');
+
+        const dateEl = document.getElementById('deliveryDate');
+        if (dateEl && !dateEl.min) {
+            const today = new Date();
+            const yyyy = String(today.getFullYear());
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            dateEl.min = `${yyyy}-${mm}-${dd}`;
+        }
+
+        const sync = () => {
+            const needs = !!needsShippingEl?.checked;
+            if (shippingFieldsEl) shippingFieldsEl.hidden = !needs;
+            updateCartTotal();
+        };
+
+        needsShippingEl?.addEventListener('change', sync);
+        sync();
+    }
     
     function renderCart() {
         const cartContainer = document.querySelector('.carrito-items');
@@ -960,7 +994,8 @@ if (window.location.pathname.includes('carrito')) {
     
     function updateCartTotal() {
         const totalPrice = cart.getTotal();
-        const shippingCost = 5000;
+        const needsShipping = !!document.getElementById('needsShipping')?.checked;
+        const shippingCost = needsShipping ? 5000 : 0;
         const finalTotal = totalPrice + shippingCost;
 
         const subtotalEl = document.querySelector('.carrito-subtotal-precio');
@@ -987,18 +1022,43 @@ if (window.location.pathname.includes('carrito')) {
                 return;
             }
             
-            // Obtener datos del cliente (si existen)
+            // Datos de contacto/envío (requeridos antes de pagar)
             const storedUser = getStoredUser();
-            const customerName = document.querySelector('input[name="name"]')?.value || storedUser?.name || 'Cliente';
-            const customerEmail = document.querySelector('input[name="email"]')?.value || storedUser?.email || '';
-            const customerPhone = document.querySelector('input[name="phone"]')?.value || '';
-            const customerAddress = document.querySelector('input[name="address"]')?.value || '';
-            const customerCity = document.querySelector('input[name="city"]')?.value || '';
+            const customerName = document.getElementById('customerName')?.value?.trim() || storedUser?.name || '';
+            const customerEmail = document.getElementById('customerEmail')?.value?.trim() || storedUser?.email || '';
+            const customerPhone = document.getElementById('customerPhone')?.value?.trim() || '';
+            const needsShipping = !!document.getElementById('needsShipping')?.checked;
+            const customerAddress = document.getElementById('customerAddress')?.value?.trim() || '';
+            const customerCity = document.getElementById('customerCity')?.value?.trim() || '';
+            const deliveryDate = document.getElementById('deliveryDate')?.value || '';
+            const deliveryTime = document.getElementById('deliveryTime')?.value || '';
+            const deliveryNotes = document.getElementById('deliveryNotes')?.value?.trim() || '';
+
+            if (!customerName) {
+                showNotification('Por favor ingresa tu nombre.', 'error');
+                return;
+            }
+
+            if (!customerPhone) {
+                showNotification('Por favor ingresa tu teléfono.', 'error');
+                return;
+            }
+
+            if (needsShipping) {
+                if (!customerAddress || !customerCity) {
+                    showNotification('Por favor completa tu dirección y comuna/ciudad para el envío.', 'error');
+                    return;
+                }
+                if (!deliveryDate || !deliveryTime) {
+                    showNotification('Por favor selecciona el día y la hora aproximada de entrega.', 'error');
+                    return;
+                }
+            }
             
             try {
                 const orderId = generateOrderId();
                 const totalPrice = cart.getTotal();
-                const shippingCost = 5000;
+                const shippingCost = needsShipping ? 5000 : 0;
                 const finalTotal = totalPrice + shippingCost;
 
                 // Registrar pedido interno (para el admin). No bloquea por email.
@@ -1011,7 +1071,12 @@ if (window.location.pathname.includes('carrito')) {
                     customer_address: customerAddress,
                     customer_city: customerCity,
                     cart_items: cart.items,
-                    payment_method: 'webpay'
+                    payment_method: 'webpay',
+                    needs_shipping: needsShipping,
+                    shipping_cost: shippingCost,
+                    delivery_date: deliveryDate,
+                    delivery_time: deliveryTime,
+                    delivery_notes: deliveryNotes
                 });
 
                 // Facilitar el pago: copiar monto y llevar al link

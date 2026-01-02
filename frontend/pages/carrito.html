@@ -71,6 +71,59 @@
                 <!-- Resumen de la compra -->
                 <div class="carrito-resumen">
                     <h3>RESUMEN DE COMPRA</h3>
+
+                    <form id="checkoutDetailsForm" class="checkout-details" autocomplete="on">
+                        <h4 class="checkout-details-title">DATOS DE CONTACTO</h4>
+
+                        <div class="checkout-field">
+                            <label for="customerName">Nombre</label>
+                            <input id="customerName" name="name" type="text" required autocomplete="name">
+                        </div>
+
+                        <div class="checkout-field">
+                            <label for="customerPhone">Teléfono</label>
+                            <input id="customerPhone" name="phone" type="tel" required autocomplete="tel">
+                        </div>
+
+                        <div class="checkout-field">
+                            <label for="customerEmail">Email (opcional)</label>
+                            <input id="customerEmail" name="email" type="email" autocomplete="email">
+                        </div>
+
+                        <div class="checkout-field checkout-checkbox">
+                            <input id="needsShipping" name="needs_shipping" type="checkbox">
+                            <label for="needsShipping">Necesito envío</label>
+                        </div>
+
+                        <div id="shippingFields" class="checkout-shipping" hidden>
+                            <h4 class="checkout-details-title">DIRECCIÓN Y HORARIO</h4>
+
+                            <div class="checkout-field">
+                                <label for="customerAddress">Dirección</label>
+                                <input id="customerAddress" name="address" type="text" autocomplete="street-address">
+                            </div>
+
+                            <div class="checkout-field">
+                                <label for="customerCity">Comuna / Ciudad</label>
+                                <input id="customerCity" name="city" type="text" autocomplete="address-level2">
+                            </div>
+
+                            <div class="checkout-field">
+                                <label for="deliveryDate">Día de entrega</label>
+                                <input id="deliveryDate" name="delivery_date" type="date">
+                            </div>
+
+                            <div class="checkout-field">
+                                <label for="deliveryTime">Hora aproximada</label>
+                                <input id="deliveryTime" name="delivery_time" type="time" step="900">
+                            </div>
+
+                            <div class="checkout-field">
+                                <label for="deliveryNotes">Indicaciones (opcional)</label>
+                                <input id="deliveryNotes" name="delivery_notes" type="text" autocomplete="off">
+                            </div>
+                        </div>
+                    </form>
                     
                     <div class="resumen-line">
                         <span>Subtotal:</span>

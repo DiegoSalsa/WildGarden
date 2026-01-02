@@ -33,7 +33,22 @@ const getMyTransactions = async (req, res) => {
 
 const createTransaction = async (req, res) => {
     try {
-        const { order_id, amount, customer_name, customer_email, customer_phone, customer_address, customer_city, cart_items, payment_method } = req.body;
+        const {
+            order_id,
+            amount,
+            customer_name,
+            customer_email,
+            customer_phone,
+            customer_address,
+            customer_city,
+            cart_items,
+            payment_method,
+            needs_shipping,
+            shipping_cost,
+            delivery_date,
+            delivery_time,
+            delivery_notes
+        } = req.body;
 
         const admin = initFirebaseAdmin();
         const db = getDb();
@@ -58,6 +73,11 @@ const createTransaction = async (req, res) => {
             customerPhone: customer_phone || '',
             customerAddress: customer_address || '',
             customerCity: customer_city || '',
+            needsShipping: !!needs_shipping,
+            shippingCost: Number(shipping_cost) || 0,
+            deliveryDate: delivery_date || '',
+            deliveryTime: delivery_time || '',
+            deliveryNotes: delivery_notes || '',
             items,
             paymentMethod: payment_method || 'webpay',
             status: 'pending',

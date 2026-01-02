@@ -1276,6 +1276,64 @@ body.menu-open {
     letter-spacing: 1px;
 }
 
+.checkout-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 22px;
+}
+
+.checkout-details-title {
+    font-size: 12px;
+    letter-spacing: 1px;
+    font-weight: 500;
+    color: var(--texto-principal);
+    margin: 8px 0 6px;
+}
+
+.checkout-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.checkout-field label {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--texto-principal);
+}
+
+.checkout-field input {
+    width: 100%;
+    padding: 12px;
+    background: var(--blanco);
+    border: 1px solid var(--verde-medio);
+    color: var(--texto-principal);
+    font-size: 14px;
+    font-family: 'EB Garamond', serif;
+    border-radius: 6px;
+}
+
+.checkout-checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkout-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border-radius: 4px;
+}
+
+.checkout-shipping {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 6px;
+}
+
 .resumen-line {
     display: flex;
     justify-content: space-between;
