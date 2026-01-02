@@ -90,6 +90,10 @@ class APIClient {
         return this.patch(`/admin/orders/${orderId}/status`, { status });
     }
 
+    async adminDeleteOrder(orderId) {
+        return this.request(`/admin/orders/${orderId}`, { method: 'DELETE' });
+    }
+
     // Admin: productos
     async getAdminProducts() {
         return this.get('/admin/products');

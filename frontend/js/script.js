@@ -556,6 +556,7 @@ async function renderAdminOrdersPage() {
                             <option value="cancelled" ${status === 'cancelled' ? 'selected' : ''}>cancelled</option>
                         </select>
                         <button class="btn-auth admin-status-save" type="button">Guardar estado</button>
+                        <button class="btn-auth admin-order-delete" type="button">Eliminar</button>
                     </div>
                 </div>
             `;
@@ -576,6 +577,32 @@ async function renderAdminOrdersPage() {
                     showNotification('Estado actualizado', 'success');
                 } catch (e) {
                     showNotification('No tienes permisos de admin o hubo un error.', 'error');
+                }
+            });
+        });
+
+        listEl.querySelectorAll('.admin-order-delete').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const card = btn.closest('.order-card');
+                const orderId = card?.getAttribute('data-order-id');
+                if (!orderId) return;
+
+                const ok = confirm('¿Eliminar definitivamente este pedido? Esta acción no se puede deshacer.');
+                if (!ok) return;
+
+                try {
+                    btn.disabled = true;
+                    await api.adminDeleteOrder(orderId);
+                    card?.remove();
+
+                    if (!listEl.querySelector('.order-card')) {
+                        listEl.innerHTML = '<p>No hay pedidos aún.</p>';
+                    }
+
+                    showNotification('Pedido eliminado', 'success');
+                } catch (e) {
+                    btn.disabled = false;
+                    showNotification('No se pudo eliminar el pedido.', 'error');
                 }
             });
         });

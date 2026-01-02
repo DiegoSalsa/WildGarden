@@ -225,11 +225,35 @@ const adminUpdateOrderStatus = async (req, res) => {
     return updateTransactionStatus(req, res);
 };
 
+// Admin: eliminar pedido definitivamente
+const adminDeleteOrder = async (req, res) => {
+    try {
+        const { order_id } = req.params;
+        if (!order_id) {
+            return res.status(400).json({ error: 'Falta order_id' });
+        }
+
+        const db = getDb();
+        const ref = db.collection('orders').doc(order_id);
+        const existing = await ref.get();
+        if (!existing.exists) {
+            return res.status(404).json({ error: 'Pedido no encontrado' });
+        }
+
+        await ref.delete();
+        return res.json({ message: 'Pedido eliminado', order_id });
+    } catch (error) {
+        console.error('Error al eliminar pedido (admin):', error);
+        return res.status(500).json({ error: 'Error al eliminar pedido' });
+    }
+};
+
 module.exports = {
     createTransaction,
     getMyTransactions,
     getTransaction,
     updateTransactionStatus,
     adminListOrders,
-    adminUpdateOrderStatus
+    adminUpdateOrderStatus,
+    adminDeleteOrder
 };

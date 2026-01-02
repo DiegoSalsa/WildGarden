@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const { authenticateFirebaseToken, requireAdmin } = require('../middleware/firebaseAuth');
-const { adminListOrders, adminUpdateOrderStatus } = require('../controllers/transactionController');
+const { adminListOrders, adminUpdateOrderStatus, adminDeleteOrder } = require('../controllers/transactionController');
 const { adminListProducts, createProduct, updateProduct, deleteProduct } = require('../controllers/productController');
 const { initCloudinary } = require('../config/cloudinary');
 
@@ -13,6 +13,7 @@ const upload = multer({
 
 router.get('/orders', authenticateFirebaseToken, requireAdmin, adminListOrders);
 router.patch('/orders/:order_id/status', authenticateFirebaseToken, requireAdmin, adminUpdateOrderStatus);
+router.delete('/orders/:order_id', authenticateFirebaseToken, requireAdmin, adminDeleteOrder);
 
 // Admin: productos (CRUD)
 router.get('/products', authenticateFirebaseToken, requireAdmin, adminListProducts);
