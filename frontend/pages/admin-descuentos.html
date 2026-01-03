@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/favicon.ico">
-    <title>Admin - Pedidos | Floreria WildGarden</title>
+    <title>Admin - Códigos de descuento | Floreria WildGarden</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,8 +49,8 @@
 
     <section class="page-header">
         <div class="container">
-            <h1 class="page-title">ADMIN - PEDIDOS</h1>
-            <p class="page-subtitle">Gestiona el estado de los pedidos</p>
+            <h1 class="page-title">ADMIN - CÓDIGOS DE DESCUENTO</h1>
+            <p class="page-subtitle">Crea y gestiona códigos</p>
         </div>
     </section>
 
@@ -58,21 +58,53 @@
         <div class="container">
             <div class="cuenta-box">
                 <div class="cuenta-orders">
-                    <h2 class="cuenta-title">Pedidos recientes</h2>
-                    <div id="adminOrdersList" class="orders-list">
-                        <p>Cargando pedidos…</p>
-                    </div>
-                </div>
-
-                <div class="cuenta-orders" style="margin-top:30px;">
-                    <h2 class="cuenta-title">Otras herramientas</h2>
+                    <h2 class="cuenta-title">Navegación</h2>
                     <div class="orders-list">
-                        <p style="margin-bottom:12px;">Accesos rápidos a otras secciones de admin.</p>
                         <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <a class="btn-auth" href="admin.html">Pedidos</a>
                             <a class="btn-auth" href="admin-avisos.html">Avisos flotantes</a>
                             <a class="btn-auth" href="admin-descuentos.html">Códigos de descuento</a>
                             <a class="btn-auth" href="admin-productos.html">Gestión de productos</a>
                         </div>
+                    </div>
+                </div>
+
+                <div class="cuenta-orders" style="margin-top:30px;">
+                    <h2 class="cuenta-title">Códigos de descuento</h2>
+
+                    <form id="adminDiscountCodeForm" class="auth-form" style="max-width: 700px;">
+                        <div class="form-row" style="display:flex; gap:16px; flex-wrap:wrap;">
+                            <div class="form-group" style="flex:1; min-width: 220px;">
+                                <label for="discountCode">Código</label>
+                                <input id="discountCode" type="text" placeholder="Ej: WILD10" required />
+                            </div>
+                            <div class="form-group" style="flex:1; min-width: 220px;">
+                                <label for="discountPercent">% Descuento</label>
+                                <input id="discountPercent" type="number" min="1" max="100" step="1" placeholder="10" required />
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="display:flex; gap:16px; flex-wrap:wrap;">
+                            <div class="form-group" style="flex:1; min-width: 220px;">
+                                <label for="discountStart">Inicio (opcional)</label>
+                                <input id="discountStart" type="datetime-local" />
+                            </div>
+                            <div class="form-group" style="flex:1; min-width: 220px;">
+                                <label for="discountEnd">Fin (opcional)</label>
+                                <input id="discountEnd" type="datetime-local" />
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                            <input id="discountEnabled" type="checkbox" checked />
+                            <label for="discountEnabled" style="margin:0;">Habilitado</label>
+                        </div>
+
+                        <button class="btn-auth" type="submit">Crear código</button>
+                    </form>
+
+                    <div id="adminDiscountCodesList" class="orders-list" style="margin-top:16px;">
+                        <p>Cargando códigos…</p>
                     </div>
                 </div>
             </div>

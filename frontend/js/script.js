@@ -62,7 +62,16 @@ function decodeJwtPayload(token) {
 
 function isAdminPage() {
     const path = String(window.location.pathname || '').toLowerCase();
-    return path.endsWith('/admin.html') || path.endsWith('admin.html') || path.endsWith('/admin-productos.html') || path.endsWith('admin-productos.html');
+    return (
+        path.endsWith('/admin.html') ||
+        path.endsWith('admin.html') ||
+        path.endsWith('/admin-productos.html') ||
+        path.endsWith('admin-productos.html') ||
+        path.endsWith('/admin-avisos.html') ||
+        path.endsWith('admin-avisos.html') ||
+        path.endsWith('/admin-descuentos.html') ||
+        path.endsWith('admin-descuentos.html')
+    );
 }
 
 function renderSiteNoticeBannerHtml(message) {
@@ -543,8 +552,13 @@ async function renderAccountPage() {
             adminEl.innerHTML = `
                 <h2 class="cuenta-title">Admin</h2>
                 <div class="orders-list">
-                    <p style="margin-bottom:12px;">Acceso a gestión de pedidos.</p>
-                    <a class="btn-auth" href="admin.html">Ver / gestionar pedidos</a>
+                    <p style="margin-bottom:12px;">Accesos rápidos a herramientas de administración.</p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <a class="btn-auth" href="admin.html">Pedidos</a>
+                        <a class="btn-auth" href="admin-avisos.html">Avisos</a>
+                        <a class="btn-auth" href="admin-descuentos.html">Descuentos</a>
+                        <a class="btn-auth" href="admin-productos.html">Productos</a>
+                    </div>
                 </div>
             `;
             boxEl.appendChild(adminEl);
