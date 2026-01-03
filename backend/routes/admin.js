@@ -4,6 +4,7 @@ const multer = require('multer');
 const { authenticateFirebaseToken, requireAdmin } = require('../middleware/firebaseAuth');
 const { adminListOrders, adminUpdateOrderStatus, adminDeleteOrder } = require('../controllers/transactionController');
 const { adminListProducts, createProduct, updateProduct, deleteProduct } = require('../controllers/productController');
+const { adminListNotices, adminCreateNotice, adminUpdateNotice, adminDeleteNotice } = require('../controllers/noticeController');
 const { initCloudinary } = require('../config/cloudinary');
 
 const upload = multer({
@@ -14,6 +15,12 @@ const upload = multer({
 router.get('/orders', authenticateFirebaseToken, requireAdmin, adminListOrders);
 router.patch('/orders/:order_id/status', authenticateFirebaseToken, requireAdmin, adminUpdateOrderStatus);
 router.delete('/orders/:order_id', authenticateFirebaseToken, requireAdmin, adminDeleteOrder);
+
+// Admin: avisos flotantes (CRUD)
+router.get('/notices', authenticateFirebaseToken, requireAdmin, adminListNotices);
+router.post('/notices', authenticateFirebaseToken, requireAdmin, adminCreateNotice);
+router.patch('/notices/:notice_id', authenticateFirebaseToken, requireAdmin, adminUpdateNotice);
+router.delete('/notices/:notice_id', authenticateFirebaseToken, requireAdmin, adminDeleteNotice);
 
 // Admin: productos (CRUD)
 router.get('/products', authenticateFirebaseToken, requireAdmin, adminListProducts);

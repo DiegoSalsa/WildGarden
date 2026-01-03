@@ -51,6 +51,7 @@ app.use(express.json());
 app.use('/api/products', require('./routes/products'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/transactions', require('./routes/transactions'));
+app.use('/api/notices', require('./routes/notices'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Health check

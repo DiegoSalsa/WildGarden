@@ -63,6 +63,39 @@
                         <p>Cargando pedidos…</p>
                     </div>
                 </div>
+
+                <div class="cuenta-orders" style="margin-top:30px;">
+                    <h2 class="cuenta-title">Avisos flotantes</h2>
+
+                    <form id="adminNoticeForm" class="auth-form" style="max-width: 700px;">
+                        <div class="form-group">
+                            <label for="noticeMessage">Mensaje</label>
+                            <textarea id="noticeMessage" rows="3" placeholder="Ej: Cerrado hasta el próximo lunes" required></textarea>
+                        </div>
+
+                        <div class="form-row" style="display:flex; gap:16px; flex-wrap:wrap;">
+                            <div class="form-group" style="flex:1; min-width: 220px;">
+                                <label for="noticeStart">Inicio (opcional)</label>
+                                <input id="noticeStart" type="datetime-local" />
+                            </div>
+                            <div class="form-group" style="flex:1; min-width: 220px;">
+                                <label for="noticeEnd">Fin (opcional)</label>
+                                <input id="noticeEnd" type="datetime-local" />
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                            <input id="noticeEnabled" type="checkbox" checked />
+                            <label for="noticeEnabled" style="margin:0;">Habilitado</label>
+                        </div>
+
+                        <button class="btn-auth" type="submit">Crear aviso</button>
+                    </form>
+
+                    <div id="adminNoticesList" class="orders-list" style="margin-top:16px;">
+                        <p>Cargando avisos…</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>

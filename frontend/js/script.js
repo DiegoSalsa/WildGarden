@@ -56,6 +56,64 @@ function decodeJwtPayload(token) {
     }
 }
 
+// ============================================
+// AVISOS FLOTANTES (público)
+// ============================================
+
+function isAdminPage() {
+    const path = String(window.location.pathname || '').toLowerCase();
+    return path.endsWith('/admin.html') || path.endsWith('admin.html') || path.endsWith('/admin-productos.html') || path.endsWith('admin-productos.html');
+}
+
+function renderSiteNoticeBannerHtml(message) {
+    const safe = escapeHtml(String(message || '')).replace(/\n/g, '<br>');
+    return `
+        <div class="site-notice__inner">
+            <div class="site-notice__text">${safe}</div>
+        </div>
+    `;
+}
+
+async function renderSiteNotices() {
+    // No mostrar banner en páginas de admin
+    if (isAdminPage()) return;
+
+    try {
+        if (typeof api?.getActiveNotices !== 'function') return;
+
+        const res = await api.getActiveNotices();
+        const notices = Array.isArray(res?.notices) ? res.notices : [];
+        if (!notices.length) return;
+
+        const first = notices[0];
+        const message = String(first?.message || '').trim();
+        if (!message) return;
+
+        const id = String(first?.notice_id || '');
+        const containerId = 'wg-site-notice';
+        let el = document.getElementById(containerId);
+        if (!el) {
+            el = document.createElement('div');
+            el.id = containerId;
+            el.className = 'site-notice';
+            document.body.appendChild(el);
+        }
+        if (id) el.setAttribute('data-notice-id', id);
+
+        el.innerHTML = renderSiteNoticeBannerHtml(message);
+
+        // Evitar que el banner tape el contenido
+        try {
+            document.body.style.paddingBottom = '64px';
+        } catch {
+            // no-op
+        }
+    } catch (e) {
+        // Silencioso: el sitio debe seguir funcionando aunque falle
+        console.warn('No se pudieron cargar avisos:', e);
+    }
+}
+
 function isAdminUser() {
     const token = localStorage.getItem('authToken');
     const claims = decodeJwtPayload(token);
@@ -672,8 +730,188 @@ async function renderAdminOrdersPage() {
     }
 }
 
+// ============================================
+// ADMIN - AVISOS FLOTANTES
+// ============================================
+
+function getTimestampMs(ts) {
+    if (!ts) return null;
+    if (typeof ts.toMillis === 'function') return ts.toMillis();
+    const sec = Number(ts.seconds ?? ts._seconds ?? 0) || 0;
+    if (!sec) return null;
+    return sec * 1000;
+}
+
+function noticeStatusLabel(n) {
+    const enabled = n?.enabled !== false;
+    if (!enabled) return 'Deshabilitado';
+    const now = Date.now();
+    const startMs = getTimestampMs(n?.startAt);
+    const endMs = getTimestampMs(n?.endAt);
+    if (startMs && now < startMs) return 'Programado';
+    if (endMs && now > endMs) return 'Expirado';
+    return 'Activo';
+}
+
+function formatNoticeDate(ts) {
+    const ms = getTimestampMs(ts);
+    if (!ms) return '—';
+    return new Date(ms).toLocaleString();
+}
+
+function renderAdminNoticesList(notices) {
+    const listEl = document.getElementById('adminNoticesList');
+    if (!listEl) return;
+
+    if (!notices.length) {
+        listEl.innerHTML = '<p>No hay avisos aún.</p>';
+        return;
+    }
+
+    listEl.innerHTML = notices.map((n) => {
+        const id = String(n.notice_id || '');
+        const enabled = n.enabled !== false;
+        const status = noticeStatusLabel(n);
+        const message = escapeHtml(String(n.message || ''));
+        const startLabel = formatNoticeDate(n.startAt);
+        const endLabel = formatNoticeDate(n.endAt);
+
+        return `
+            <div class="order-card" data-notice-id="${escapeHtml(id)}">
+                <div class="order-row">
+                    <div><strong>Estado:</strong> ${escapeHtml(status)}</div>
+                    <div><strong>Habilitado:</strong> ${enabled ? 'Sí' : 'No'}</div>
+                </div>
+                <div class="order-meta" style="margin-top:8px;">
+                    <strong>Mensaje:</strong> ${message}
+                </div>
+                <div class="order-row" style="margin-top:8px;">
+                    <div><strong>Inicio:</strong> ${escapeHtml(startLabel)}</div>
+                    <div><strong>Fin:</strong> ${escapeHtml(endLabel)}</div>
+                </div>
+                <div class="order-row" style="margin-top:10px; gap:10px;">
+                    <button class="btn-auth admin-notice-toggle" type="button">${enabled ? 'Deshabilitar' : 'Habilitar'}</button>
+                    <button class="btn-auth admin-notice-delete" type="button">Eliminar</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function loadAdminNotices() {
+    const listEl = document.getElementById('adminNoticesList');
+    if (!listEl) return;
+
+    if (!isLoggedIn() || !isAdminUser()) {
+        listEl.innerHTML = '<p>Acceso denegado. Tu usuario no es admin.</p>';
+        return;
+    }
+
+    try {
+        const res = await api.adminListNotices();
+        const notices = Array.isArray(res?.notices) ? res.notices : [];
+        renderAdminNoticesList(notices);
+
+        listEl.querySelectorAll('.admin-notice-toggle').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const card = btn.closest('.order-card');
+                const noticeId = card?.getAttribute('data-notice-id');
+                if (!noticeId) return;
+
+                try {
+                    btn.disabled = true;
+                    // Inferir estado actual desde texto del botón
+                    const willEnable = btn.textContent.trim().toLowerCase() === 'habilitar';
+                    await api.adminUpdateNotice(noticeId, { enabled: willEnable });
+                    await loadAdminNotices();
+                    showNotification('Aviso actualizado', 'success');
+                } catch (e) {
+                    btn.disabled = false;
+                    showNotification('No se pudo actualizar el aviso', 'error');
+                }
+            });
+        });
+
+        listEl.querySelectorAll('.admin-notice-delete').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const card = btn.closest('.order-card');
+                const noticeId = card?.getAttribute('data-notice-id');
+                if (!noticeId) return;
+
+                const ok = confirm('¿Eliminar este aviso?');
+                if (!ok) return;
+
+                try {
+                    btn.disabled = true;
+                    await api.adminDeleteNotice(noticeId);
+                    await loadAdminNotices();
+                    showNotification('Aviso eliminado', 'success');
+                } catch (e) {
+                    btn.disabled = false;
+                    showNotification('No se pudo eliminar el aviso', 'error');
+                }
+            });
+        });
+    } catch (e) {
+        listEl.innerHTML = '<p>No se pudieron cargar los avisos.</p>';
+    }
+}
+
+function wireAdminNoticeForm() {
+    const form = document.getElementById('adminNoticeForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!isLoggedIn() || !isAdminUser()) {
+            showNotification('Acceso denegado. Tu usuario no es admin.', 'error');
+            return;
+        }
+
+        const messageEl = document.getElementById('noticeMessage');
+        const startEl = document.getElementById('noticeStart');
+        const endEl = document.getElementById('noticeEnd');
+        const enabledEl = document.getElementById('noticeEnabled');
+
+        const message = String(messageEl?.value || '').trim();
+        if (!message) {
+            showNotification('Escribe un mensaje', 'error');
+            return;
+        }
+
+        const startsAtRaw = String(startEl?.value || '').trim();
+        const endsAtRaw = String(endEl?.value || '').trim();
+        const startsAt = startsAtRaw ? new Date(startsAtRaw).toISOString() : null;
+        const endsAt = endsAtRaw ? new Date(endsAtRaw).toISOString() : null;
+        const enabled = !!enabledEl?.checked;
+
+        try {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            await api.adminCreateNotice({ message, startsAt, endsAt, enabled });
+
+            if (messageEl) messageEl.value = '';
+            if (startEl) startEl.value = '';
+            if (endEl) endEl.value = '';
+            if (enabledEl) enabledEl.checked = true;
+
+            await loadAdminNotices();
+            showNotification('Aviso creado', 'success');
+        } catch (err) {
+            showNotification(String(err?.message || 'No se pudo crear el aviso'), 'error');
+        } finally {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     renderAdminOrdersPage();
+    wireAdminNoticeForm();
+    loadAdminNotices();
 });
 
 // ============================================
@@ -1715,5 +1953,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderHomeFeaturedProducts();
     renderProductsCatalogFromApi();
     renderProductDetailPage();
+    renderSiteNotices();
 });
 

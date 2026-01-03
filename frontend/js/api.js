@@ -81,6 +81,11 @@ class APIClient {
         return this.get('/transactions/my');
     }
 
+    // Avisos flotantes (público)
+    async getActiveNotices() {
+        return this.get('/notices/active');
+    }
+
     // Admin: pedidos
     async getAdminOrders() {
         return this.get('/admin/orders');
@@ -92,6 +97,23 @@ class APIClient {
 
     async adminDeleteOrder(orderId) {
         return this.request(`/admin/orders/${orderId}`, { method: 'DELETE' });
+    }
+
+    // Admin: avisos flotantes
+    async adminListNotices() {
+        return this.get('/admin/notices');
+    }
+
+    async adminCreateNotice(notice) {
+        return this.post('/admin/notices', notice);
+    }
+
+    async adminUpdateNotice(noticeId, patch) {
+        return this.patch(`/admin/notices/${noticeId}`, patch);
+    }
+
+    async adminDeleteNotice(noticeId) {
+        return this.request(`/admin/notices/${noticeId}`, { method: 'DELETE' });
     }
 
     // Admin: productos

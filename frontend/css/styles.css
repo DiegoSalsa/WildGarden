@@ -23,6 +23,36 @@ body {
     background-color: var(--blanco);
 }
 
+/* Aviso flotante (banner sitio) */
+.site-notice {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    background: var(--crema);
+    border-top: 1px solid var(--verde-medio);
+    box-shadow: 0 -2px 8px var(--sombra);
+}
+
+.site-notice__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 12px 40px;
+}
+
+.site-notice__text {
+    color: var(--texto-principal);
+    font-size: 16px;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .site-notice__inner {
+        padding: 10px 20px;
+    }
+}
+
 html.menu-open,
 body.menu-open {
     overflow: hidden;
