@@ -140,6 +140,40 @@ function updateAuthLinks() {
         // Insertar botón de logout (una vez por menú)
         const navLists = document.querySelectorAll('.nav-links');
         navLists.forEach(ul => {
+            // Link visible para admin: gestionar productos
+            const isAdmin = isAdminUser();
+            const inPages = window.location.pathname.includes('/pages/');
+            const adminProductsHref = inPages ? 'admin-productos.html' : 'pages/admin-productos.html';
+
+            if (isAdmin) {
+                if (!ul.querySelector('.nav-admin-products-link')) {
+                    const liAdmin = document.createElement('li');
+                    const aAdmin = document.createElement('a');
+                    aAdmin.href = adminProductsHref;
+                    aAdmin.className = 'nav-admin-products-link';
+                    aAdmin.textContent = 'Admin productos';
+                    liAdmin.appendChild(aAdmin);
+
+                    // Insertar antes de "Salir" si existe, o al final
+                    const logoutLi = ul.querySelector('.nav-logout-link')?.closest('li') || null;
+                    if (logoutLi && logoutLi.parentNode === ul) {
+                        ul.insertBefore(liAdmin, logoutLi);
+                    } else {
+                        ul.appendChild(liAdmin);
+                    }
+                } else {
+                    // Mantener href correcto por si cambia contexto
+                    const aAdmin = ul.querySelector('.nav-admin-products-link');
+                    if (aAdmin) aAdmin.setAttribute('href', adminProductsHref);
+                }
+            } else {
+                // Si está logueado pero no es admin, remover link si existe
+                const adminLink = ul.querySelector('.nav-admin-products-link');
+                const li = adminLink?.closest('li');
+                if (li) li.remove();
+                else adminLink?.remove();
+            }
+
             if (!ul.querySelector('.nav-logout-link')) {
                 const li = document.createElement('li');
                 const a = document.createElement('a');
@@ -169,6 +203,13 @@ function updateAuthLinks() {
 
         // Quitar logout si existe
         document.querySelectorAll('.nav-logout-link').forEach(el => {
+            const li = el.closest('li');
+            if (li) li.remove();
+            else el.remove();
+        });
+
+        // Quitar link admin si existe
+        document.querySelectorAll('.nav-admin-products-link').forEach(el => {
             const li = el.closest('li');
             if (li) li.remove();
             else el.remove();
