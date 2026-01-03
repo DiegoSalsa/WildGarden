@@ -18,6 +18,19 @@ const upload = multer({
 	limits: { fileSize: 8 * 1024 * 1024 }
 });
 
+function uploadSingleImage(req, res, next) {
+	upload.single('image')(req, res, (err) => {
+		if (!err) return next();
+
+		// Multer errors (e.g. LIMIT_FILE_SIZE) should not become a generic 500
+		if (err && err.code === 'LIMIT_FILE_SIZE') {
+			return res.status(413).json({ error: 'La imagen es muy pesada (máximo 8MB).' });
+		}
+
+		return res.status(400).json({ error: err?.message || 'Error al procesar la imagen.' });
+	});
+}
+
 router.get('/orders', authenticateFirebaseToken, requireAdmin, adminListOrders);
 router.patch('/orders/:order_id/status', authenticateFirebaseToken, requireAdmin, adminUpdateOrderStatus);
 router.delete('/orders/:order_id', authenticateFirebaseToken, requireAdmin, adminDeleteOrder);
@@ -41,10 +54,14 @@ router.patch('/discount-codes/:code', authenticateFirebaseToken, requireAdmin, a
 router.delete('/discount-codes/:code', authenticateFirebaseToken, requireAdmin, adminDeleteDiscountCode);
 
 // Admin: subir imagen a Cloudinary
-router.post('/upload', authenticateFirebaseToken, requireAdmin, upload.single('image'), async (req, res) => {
+router.post('/upload', authenticateFirebaseToken, requireAdmin, uploadSingleImage, async (req, res) => {
 	try {
 		if (!req.file) {
 			return res.status(400).json({ error: 'Falta archivo image' });
+		}
+
+		if (req.file.mimetype && !String(req.file.mimetype).startsWith('image/')) {
+			return res.status(400).json({ error: 'El archivo debe ser una imagen.' });
 		}
 
 		const cloudinary = initCloudinary();
