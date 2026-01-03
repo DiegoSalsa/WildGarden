@@ -126,6 +126,19 @@
                             </div>
                         </div>
                     </form>
+
+                    <div class="checkout-details" style="margin-top:18px;">
+                        <h4 class="checkout-details-title">DESCUENTO</h4>
+                        <div class="checkout-field">
+                            <label for="discountCode">Código</label>
+                            <input id="discountCode" type="text" placeholder="Ej: WILD10" autocomplete="off">
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn-auth" id="applyDiscountBtn" type="button">Aplicar código</button>
+                            <button class="btn-auth" id="clearDiscountBtn" type="button">Quitar</button>
+                        </div>
+                        <p id="discountStatus" style="margin-top:10px; font-size:14px;"></p>
+                    </div>
                     
                     <div class="resumen-line">
                         <span>Subtotal:</span>
@@ -135,6 +148,11 @@
                     <div class="resumen-line">
                         <span>Envío:</span>
                         <span class="carrito-envio-precio">$0</span>
+                    </div>
+
+                    <div class="resumen-line" id="discountRow" style="display:none;">
+                        <span>Descuento:</span>
+                        <span class="carrito-descuento-precio">$0</span>
                     </div>
                     
                     <div class="resumen-total">

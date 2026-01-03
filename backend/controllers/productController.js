@@ -18,6 +18,25 @@ function toMillis(ts) {
     return 0;
 }
 
+function parseOptionalDate(value) {
+    if (value === undefined) return undefined; // not provided
+    if (value === null) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) {
+        throw new Error('Fecha inválida');
+    }
+    return d;
+}
+
+function toTimestampOrNull(firebaseAdmin, dateOrNull) {
+    if (dateOrNull === undefined) return undefined;
+    if (dateOrNull === null) return null;
+    return firebaseAdmin.firestore.Timestamp.fromDate(dateOrNull);
+}
+
 const getProducts = async (req, res) => {
     try {
         const db = getDb();
@@ -78,13 +97,34 @@ const getProductById = async (req, res) => {
 
 const createProduct = async (req, res) => {
     try {
-        const { product_id, name, description, price, category, image_url, image_urls, isActive } = req.body;
+        const {
+            product_id,
+            name,
+            description,
+            price,
+            category,
+            image_url,
+            image_urls,
+            isActive,
+            discountPercent,
+            discountEnabled,
+            discountStartAt,
+            discountEndAt
+        } = req.body;
 
         const admin = initFirebaseAdmin();
         const db = getDb();
         const id = product_id || db.collection('products').doc().id;
 
         const normalizedUrls = normalizeImageUrls({ image_url, image_urls });
+
+        const startDate = parseOptionalDate(discountStartAt);
+        const endDate = parseOptionalDate(discountEndAt);
+        if (startDate && endDate && endDate.getTime() < startDate.getTime()) {
+            return res.status(400).json({ error: 'discountEndAt no puede ser anterior a discountStartAt' });
+        }
+
+        const pct = Math.max(0, Math.min(100, Number(discountPercent) || 0));
 
         const payload = {
             name: name || '',
@@ -94,6 +134,10 @@ const createProduct = async (req, res) => {
             image_urls: normalizedUrls,
             image_url: normalizedUrls[0] || '',
             isActive: typeof isActive === 'boolean' ? isActive : true,
+            discountPercent: pct,
+            discountEnabled: discountEnabled === true && pct > 0,
+            discountStartAt: toTimestampOrNull(admin, startDate ?? null),
+            discountEndAt: toTimestampOrNull(admin, endDate ?? null),
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
@@ -131,7 +175,19 @@ const adminListProducts = async (req, res) => {
 const updateProduct = async (req, res) => {
     try {
         const id = req.params.product_id || req.params.id;
-        const { name, description, price, category, image_url, image_urls, isActive } = req.body || {};
+        const {
+            name,
+            description,
+            price,
+            category,
+            image_url,
+            image_urls,
+            isActive,
+            discountPercent,
+            discountEnabled,
+            discountStartAt,
+            discountEndAt
+        } = req.body || {};
 
         if (!id) {
             return res.status(400).json({ error: 'Falta product_id' });
@@ -159,6 +215,40 @@ const updateProduct = async (req, res) => {
             patch.image_url = normalizedUrls[0] || '';
         }
         if (typeof isActive === 'boolean') patch.isActive = isActive;
+
+        if (discountPercent !== undefined) {
+            const pct = Math.max(0, Math.min(100, Number(discountPercent) || 0));
+            patch.discountPercent = pct;
+            // Si se actualiza el percent, mantenemos enabled consistente
+            const current = doc.data() || {};
+            const enabled = discountEnabled !== undefined ? !!discountEnabled : !!current.discountEnabled;
+            patch.discountEnabled = enabled && pct > 0;
+        } else if (discountEnabled !== undefined) {
+            const current = doc.data() || {};
+            const pct = Math.max(0, Math.min(100, Number(current.discountPercent) || 0));
+            patch.discountEnabled = !!discountEnabled && pct > 0;
+        }
+
+        if (discountStartAt !== undefined) {
+            const startDate = parseOptionalDate(discountStartAt);
+            patch.discountStartAt = toTimestampOrNull(admin, startDate);
+        }
+
+        if (discountEndAt !== undefined) {
+            const endDate = parseOptionalDate(discountEndAt);
+            patch.discountEndAt = toTimestampOrNull(admin, endDate);
+        }
+
+        if (patch.discountStartAt !== undefined || patch.discountEndAt !== undefined) {
+            const current = doc.data() || {};
+            const start = patch.discountStartAt === undefined ? current.discountStartAt : patch.discountStartAt;
+            const end = patch.discountEndAt === undefined ? current.discountEndAt : patch.discountEndAt;
+            const startMs = start?.toMillis ? start.toMillis() : null;
+            const endMs = end?.toMillis ? end.toMillis() : null;
+            if (startMs && endMs && endMs < startMs) {
+                return res.status(400).json({ error: 'discountEndAt no puede ser anterior a discountStartAt' });
+            }
+        }
 
         await ref.set(patch, { merge: true });
         const updated = await ref.get();

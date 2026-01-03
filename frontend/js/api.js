@@ -86,6 +86,12 @@ class APIClient {
         return this.get('/notices/active');
     }
 
+    // Códigos de descuento (público)
+    async validateDiscountCode(code) {
+        const c = String(code || '').trim();
+        return this.get(`/discount-codes/validate?code=${encodeURIComponent(c)}`);
+    }
+
     // Admin: pedidos
     async getAdminOrders() {
         return this.get('/admin/orders');
@@ -143,6 +149,23 @@ class APIClient {
         const form = new FormData();
         form.append('image', file);
         return this.requestForm('/admin/upload', form);
+    }
+
+    // Admin: códigos de descuento
+    async adminListDiscountCodes() {
+        return this.get('/admin/discount-codes');
+    }
+
+    async adminCreateDiscountCode(payload) {
+        return this.post('/admin/discount-codes', payload);
+    }
+
+    async adminUpdateDiscountCode(code, patch) {
+        return this.patch(`/admin/discount-codes/${encodeURIComponent(code)}`, patch);
+    }
+
+    async adminDeleteDiscountCode(code) {
+        return this.request(`/admin/discount-codes/${encodeURIComponent(code)}`, { method: 'DELETE' });
     }
 
     // Métodos HTTP base

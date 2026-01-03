@@ -494,8 +494,10 @@ function wireUpAddToCartButtons() {
             if (!card) return;
 
             const name = card.querySelector('h3')?.textContent?.trim() || 'Producto';
+            const unitPriceAttr = card.getAttribute('data-unit-price');
+            const unitPrice = parseInt(String(unitPriceAttr || '').trim() || '0', 10) || 0;
             const priceText = card.querySelector('.catalog-price, .producto-precio')?.textContent || '0';
-            const price = parsePriceToInt(priceText);
+            const price = unitPrice > 0 ? unitPrice : parsePriceToInt(priceText);
             const productId = card.getAttribute('data-product-id') || ('prod-' + Date.now());
 
             const product = {
@@ -949,10 +951,184 @@ function wireAdminNoticeForm() {
     });
 }
 
+// ============================================
+// ADMIN - CÓDIGOS DE DESCUENTO
+// ============================================
+
+function discountCodeStatusLabel(c) {
+    const enabled = c?.enabled !== false;
+    if (!enabled) return 'Deshabilitado';
+    const now = Date.now();
+    const startMs = getTimestampMs(c?.startAt);
+    const endMs = getTimestampMs(c?.endAt);
+    if (startMs && now < startMs) return 'Programado';
+    if (endMs && now > endMs) return 'Expirado';
+    return 'Activo';
+}
+
+function renderAdminDiscountCodesList(codes) {
+    const listEl = document.getElementById('adminDiscountCodesList');
+    if (!listEl) return;
+
+    if (!codes.length) {
+        listEl.innerHTML = '<p>No hay códigos aún.</p>';
+        return;
+    }
+
+    listEl.innerHTML = codes.map((c) => {
+        const code = escapeHtml(String(c?.code || c?.codeUpper || ''));
+        const percent = Math.max(0, Math.min(100, Number(c?.percent) || 0));
+        const enabled = c?.enabled !== false;
+        const status = discountCodeStatusLabel(c);
+        const startLabel = formatNoticeDate(c?.startAt);
+        const endLabel = formatNoticeDate(c?.endAt);
+
+        return `
+            <div class="order-card" data-discount-code="${code}">
+                <div class="order-row">
+                    <div><strong>Código:</strong> ${code}</div>
+                    <div><strong>${percent}%</strong></div>
+                </div>
+                <div class="order-row" style="margin-top:8px;">
+                    <div><strong>Estado:</strong> ${escapeHtml(status)}</div>
+                    <div><strong>Habilitado:</strong> ${enabled ? 'Sí' : 'No'}</div>
+                </div>
+                <div class="order-row" style="margin-top:8px;">
+                    <div><strong>Inicio:</strong> ${escapeHtml(startLabel)}</div>
+                    <div><strong>Fin:</strong> ${escapeHtml(endLabel)}</div>
+                </div>
+                <div class="order-row" style="margin-top:10px; gap:10px;">
+                    <button class="btn-auth admin-discount-toggle" type="button">${enabled ? 'Deshabilitar' : 'Habilitar'}</button>
+                    <button class="btn-auth admin-discount-delete" type="button">Eliminar</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function loadAdminDiscountCodes() {
+    const listEl = document.getElementById('adminDiscountCodesList');
+    if (!listEl) return;
+
+    if (!isLoggedIn() || !isAdminUser()) {
+        listEl.innerHTML = '<p>Acceso denegado. Tu usuario no es admin.</p>';
+        return;
+    }
+
+    try {
+        const res = await api.adminListDiscountCodes();
+        const codes = Array.isArray(res?.codes) ? res.codes : [];
+        renderAdminDiscountCodesList(codes);
+
+        listEl.querySelectorAll('.admin-discount-toggle').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const card = btn.closest('.order-card');
+                const code = card?.getAttribute('data-discount-code');
+                if (!code) return;
+
+                try {
+                    btn.disabled = true;
+                    const willEnable = btn.textContent.trim().toLowerCase() === 'habilitar';
+                    await api.adminUpdateDiscountCode(code, { enabled: willEnable });
+                    await loadAdminDiscountCodes();
+                    showNotification('Código actualizado', 'success');
+                } catch {
+                    btn.disabled = false;
+                    showNotification('No se pudo actualizar el código', 'error');
+                }
+            });
+        });
+
+        listEl.querySelectorAll('.admin-discount-delete').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                const card = btn.closest('.order-card');
+                const code = card?.getAttribute('data-discount-code');
+                if (!code) return;
+
+                const ok = confirm(`¿Eliminar el código ${code}?`);
+                if (!ok) return;
+
+                try {
+                    btn.disabled = true;
+                    await api.adminDeleteDiscountCode(code);
+                    await loadAdminDiscountCodes();
+                    showNotification('Código eliminado', 'success');
+                } catch {
+                    btn.disabled = false;
+                    showNotification('No se pudo eliminar el código', 'error');
+                }
+            });
+        });
+    } catch {
+        listEl.innerHTML = '<p>No se pudieron cargar los códigos.</p>';
+    }
+}
+
+function wireAdminDiscountCodeForm() {
+    const form = document.getElementById('adminDiscountCodeForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!isLoggedIn() || !isAdminUser()) {
+            showNotification('Acceso denegado. Tu usuario no es admin.', 'error');
+            return;
+        }
+
+        const codeEl = document.getElementById('discountCode');
+        const percentEl = document.getElementById('discountPercent');
+        const startEl = document.getElementById('discountStart');
+        const endEl = document.getElementById('discountEnd');
+        const enabledEl = document.getElementById('discountEnabled');
+
+        const code = String(codeEl?.value || '').trim();
+        const percent = Number(percentEl?.value || 0) || 0;
+        const startsAtRaw = String(startEl?.value || '').trim();
+        const endsAtRaw = String(endEl?.value || '').trim();
+        const startsAt = startsAtRaw ? new Date(startsAtRaw).toISOString() : null;
+        const endsAt = endsAtRaw ? new Date(endsAtRaw).toISOString() : null;
+        const enabled = !!enabledEl?.checked;
+
+        if (!code) {
+            showNotification('Ingresa un código', 'error');
+            return;
+        }
+
+        if (!percent || percent < 1 || percent > 100) {
+            showNotification('Ingresa un % válido (1-100)', 'error');
+            return;
+        }
+
+        try {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            await api.adminCreateDiscountCode({ code, percent, startsAt, endsAt, enabled });
+
+            if (codeEl) codeEl.value = '';
+            if (percentEl) percentEl.value = '';
+            if (startEl) startEl.value = '';
+            if (endEl) endEl.value = '';
+            if (enabledEl) enabledEl.checked = true;
+
+            await loadAdminDiscountCodes();
+            showNotification('Código creado', 'success');
+        } catch (err) {
+            showNotification(String(err?.message || 'No se pudo crear el código'), 'error');
+        } finally {
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     renderAdminOrdersPage();
     wireAdminNoticeForm();
     loadAdminNotices();
+    wireAdminDiscountCodeForm();
+    loadAdminDiscountCodes();
 });
 
 // ============================================
@@ -974,7 +1150,11 @@ function normalizeProduct(p) {
         category: p.category || '',
         image_urls,
         image_url: image_urls[0] || '',
-        isActive: typeof p.isActive === 'boolean' ? p.isActive : true
+        isActive: typeof p.isActive === 'boolean' ? p.isActive : true,
+        discountPercent: Number(p.discountPercent) || 0,
+        discountEnabled: p.discountEnabled === true,
+        discountStartAt: p.discountStartAt ?? null,
+        discountEndAt: p.discountEndAt ?? null
     };
 }
 
@@ -1023,6 +1203,24 @@ function fillProductForm(product) {
     const descEl = document.getElementById('productDescription');
     const activeEl = document.getElementById('productIsActive');
 
+    const discountPercentEl = document.getElementById('productDiscountPercent');
+    const discountStartEl = document.getElementById('productDiscountStart');
+    const discountEndEl = document.getElementById('productDiscountEnd');
+    const discountEnabledEl = document.getElementById('productDiscountEnabled');
+
+    const toLocalInput = (ts) => {
+        const ms = getTimestampMs(ts);
+        if (!ms) return '';
+        const d = new Date(ms);
+        const pad = (n) => String(n).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const mm = pad(d.getMonth() + 1);
+        const dd = pad(d.getDate());
+        const hh = pad(d.getHours());
+        const min = pad(d.getMinutes());
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    };
+
     if (idEl) idEl.value = p.product_id || '';
     if (nameEl) nameEl.value = p.name;
     if (categoryEl) categoryEl.value = p.category;
@@ -1032,10 +1230,15 @@ function fillProductForm(product) {
     if (imageUrl3El) imageUrl3El.value = p.image_urls[2] || '';
     if (descEl) descEl.value = p.description;
     if (activeEl) activeEl.checked = !!p.isActive;
+
+    if (discountPercentEl) discountPercentEl.value = p.discountPercent ? String(p.discountPercent) : '';
+    if (discountStartEl) discountStartEl.value = toLocalInput(p.discountStartAt);
+    if (discountEndEl) discountEndEl.value = toLocalInput(p.discountEndAt);
+    if (discountEnabledEl) discountEnabledEl.checked = !!p.discountEnabled;
 }
 
 function clearProductForm() {
-    fillProductForm({ product_id: '', name: '', description: '', price: 0, category: '', image_urls: [], isActive: true });
+    fillProductForm({ product_id: '', name: '', description: '', price: 0, category: '', image_urls: [], isActive: true, discountPercent: 0, discountEnabled: false, discountStartAt: null, discountEndAt: null });
     const fileEl = document.getElementById('productImageFile');
     if (fileEl) fileEl.value = '';
 }
@@ -1151,12 +1354,19 @@ async function renderAdminProductsPage() {
         const description = document.getElementById('productDescription')?.value || '';
         const isActive = !!document.getElementById('productIsActive')?.checked;
 
+        const discountPercent = Number(document.getElementById('productDiscountPercent')?.value || 0) || 0;
+        const discountEnabled = !!document.getElementById('productDiscountEnabled')?.checked;
+        const discountStartRaw = String(document.getElementById('productDiscountStart')?.value || '').trim();
+        const discountEndRaw = String(document.getElementById('productDiscountEnd')?.value || '').trim();
+        const discountStartAt = discountStartRaw ? new Date(discountStartRaw).toISOString() : null;
+        const discountEndAt = discountEndRaw ? new Date(discountEndRaw).toISOString() : null;
+
         try {
             if (id) {
-                await api.adminUpdateProduct(id, { name, category, price, image_urls, description, isActive });
+                await api.adminUpdateProduct(id, { name, category, price, image_urls, description, isActive, discountPercent, discountEnabled, discountStartAt, discountEndAt });
                 showNotification('Producto actualizado', 'success');
             } else {
-                await api.adminCreateProduct({ name, category, price, image_urls, description, isActive });
+                await api.adminCreateProduct({ name, category, price, image_urls, description, isActive, discountPercent, discountEnabled, discountStartAt, discountEndAt });
                 showNotification('Producto creado', 'success');
             }
             clearProductForm();
@@ -1272,8 +1482,134 @@ if (window.location.pathname.includes('carrito')) {
     document.addEventListener('DOMContentLoaded', () => {
         renderCart();
         initCheckoutDetailsForm();
+        initDiscountCodeForm();
         setupCheckout();
     });
+
+    const DISCOUNT_STORAGE_KEY = 'wg_applied_discount_v1';
+
+    function getAppliedDiscount() {
+        try {
+            const raw = localStorage.getItem(DISCOUNT_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            const code = String(parsed?.code || '').trim();
+            const percent = Number(parsed?.percent) || 0;
+            if (!code || percent <= 0) return null;
+            return { code, percent };
+        } catch {
+            return null;
+        }
+    }
+
+    function setAppliedDiscount(discount) {
+        try {
+            if (!discount) {
+                localStorage.removeItem(DISCOUNT_STORAGE_KEY);
+                return;
+            }
+            localStorage.setItem(DISCOUNT_STORAGE_KEY, JSON.stringify({
+                code: String(discount.code || '').trim(),
+                percent: Number(discount.percent) || 0,
+                updatedAt: Date.now()
+            }));
+        } catch {
+            // ignore
+        }
+    }
+
+    function setDiscountStatus(text, kind = 'info') {
+        const el = document.getElementById('discountStatus');
+        if (!el) return;
+        el.textContent = String(text || '');
+        // solo usa color actual / opacidades para no introducir nuevos colores
+        if (kind === 'error') {
+            el.style.opacity = '0.9';
+        } else if (kind === 'success') {
+            el.style.opacity = '1';
+        } else {
+            el.style.opacity = '0.8';
+        }
+    }
+
+    async function syncStoredDiscountCode() {
+        const current = getAppliedDiscount();
+        if (!current?.code) {
+            updateCartTotal();
+            return;
+        }
+
+        try {
+            const res = await api.validateDiscountCode(current.code);
+            if (res?.valid && Number(res?.percent) > 0) {
+                setAppliedDiscount({ code: String(res.code || current.code), percent: Number(res.percent) || 0 });
+                setDiscountStatus(`Código aplicado: ${String(res.code || current.code)} (${Number(res.percent) || 0}% off)`, 'success');
+            } else {
+                setAppliedDiscount(null);
+                setDiscountStatus('El código de descuento ya no está activo.', 'error');
+            }
+        } catch {
+            // si falla la validación, mantenemos el código guardado pero no bloqueamos
+            setDiscountStatus('No se pudo validar el código (intenta más tarde).', 'error');
+        } finally {
+            updateCartTotal();
+        }
+    }
+
+    function initDiscountCodeForm() {
+        const input = document.getElementById('discountCode');
+        const applyBtn = document.getElementById('applyDiscountBtn');
+        const clearBtn = document.getElementById('clearDiscountBtn');
+
+        if (!input || !applyBtn || !clearBtn) return;
+
+        const existing = getAppliedDiscount();
+        if (existing?.code) {
+            input.value = existing.code;
+        }
+
+        applyBtn.addEventListener('click', async () => {
+            const code = String(input.value || '').trim();
+            if (!code) {
+                setAppliedDiscount(null);
+                setDiscountStatus('Ingresa un código.', 'error');
+                updateCartTotal();
+                return;
+            }
+
+            try {
+                applyBtn.disabled = true;
+                const res = await api.validateDiscountCode(code);
+                if (res?.valid && Number(res?.percent) > 0) {
+                    setAppliedDiscount({ code: String(res.code || code), percent: Number(res.percent) || 0 });
+                    input.value = String(res.code || code);
+                    setDiscountStatus(`Código aplicado: ${String(res.code || code)} (${Number(res.percent) || 0}% off)`, 'success');
+                    showNotification('Código de descuento aplicado', 'success');
+                } else {
+                    setAppliedDiscount(null);
+                    setDiscountStatus('Código inválido o inactivo.', 'error');
+                    showNotification('Código inválido o inactivo', 'error');
+                }
+            } catch (e) {
+                setDiscountStatus('No se pudo validar el código.', 'error');
+                showNotification('No se pudo validar el código', 'error');
+            } finally {
+                applyBtn.disabled = false;
+                updateCartTotal();
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            setAppliedDiscount(null);
+            input.value = '';
+            setDiscountStatus('');
+            updateCartTotal();
+            showNotification('Descuento quitado', 'success');
+        });
+
+        // Revalidar si ya había un código guardado
+        void syncStoredDiscountCode();
+    }
 
     function initCheckoutDetailsForm() {
         const form = document.getElementById('checkoutDetailsForm');
@@ -1372,13 +1708,30 @@ if (window.location.pathname.includes('carrito')) {
         const totalPrice = cart.getTotal();
         const needsShipping = !!document.getElementById('needsShipping')?.checked;
         const shippingCost = needsShipping ? 5000 : 0;
-        const finalTotal = totalPrice + shippingCost;
+
+        const applied = getAppliedDiscount();
+        const discountPercent = Number(applied?.percent) || 0;
+        const discountAmount = discountPercent > 0 ? Math.round((totalPrice * discountPercent) / 100) : 0;
+        const discountedSubtotal = Math.max(0, totalPrice - discountAmount);
+        const finalTotal = discountedSubtotal + shippingCost;
 
         const subtotalEl = document.querySelector('.carrito-subtotal-precio');
         if (subtotalEl) subtotalEl.textContent = formatPrice(totalPrice);
 
         const shippingEl = document.querySelector('.carrito-envio-precio');
         if (shippingEl) shippingEl.textContent = formatPrice(shippingCost);
+
+        const discountRow = document.getElementById('discountRow');
+        const discountEl = document.querySelector('.carrito-descuento-precio');
+        if (discountRow) {
+            if (discountAmount > 0) {
+                discountRow.style.display = '';
+                if (discountEl) discountEl.textContent = `- ${formatPrice(discountAmount)}`;
+            } else {
+                discountRow.style.display = 'none';
+                if (discountEl) discountEl.textContent = formatPrice(0);
+            }
+        }
 
         const totalEl = document.querySelector('.carrito-total-precio');
         if (totalEl) totalEl.textContent = formatPrice(finalTotal);
@@ -1435,12 +1788,18 @@ if (window.location.pathname.includes('carrito')) {
                 const orderId = generateOrderId();
                 const totalPrice = cart.getTotal();
                 const shippingCost = needsShipping ? 5000 : 0;
-                const finalTotal = totalPrice + shippingCost;
+
+                const applied = getAppliedDiscount();
+                const discountPercent = Number(applied?.percent) || 0;
+                const discountAmount = discountPercent > 0 ? Math.round((totalPrice * discountPercent) / 100) : 0;
+                const discountedSubtotal = Math.max(0, totalPrice - discountAmount);
+                const finalTotal = discountedSubtotal + shippingCost;
 
                 // Registrar pedido interno (para el admin). No bloquea por email.
-                await api.createTransaction({
+                const created = await api.createTransaction({
                     order_id: orderId,
                     amount: finalTotal,
+                    discount_code: applied?.code || null,
                     customer_name: customerName,
                     customer_email: customerEmail,
                     customer_phone: customerPhone,
@@ -1455,13 +1814,15 @@ if (window.location.pathname.includes('carrito')) {
                     delivery_notes: deliveryNotes
                 });
 
+                const payableAmount = Number(created?.transaction?.amount) || finalTotal;
+
                 // Facilitar el pago: copiar monto y llevar al link
-                const amountToCopy = String(Math.round(finalTotal));
+                const amountToCopy = String(Math.round(payableAmount));
                 const clipboardWrite = navigator.clipboard?.writeText?.bind(navigator.clipboard);
                 if (clipboardWrite) {
                     try {
                         await clipboardWrite(amountToCopy);
-                        showNotification(`Monto copiado: ${formatPrice(finalTotal)}. Pégalo en Webpay.`, 'success');
+                        showNotification(`Monto copiado: ${formatPrice(payableAmount)}. Pégalo en Webpay.`, 'success');
                     } catch {
                         // Fallback: prompt permite copiar manualmente en muchos navegadores
                         window.prompt('Monto a pagar (copia y pega en Webpay):', amountToCopy);
@@ -1501,6 +1862,40 @@ function getProductImageUrls(product) {
         : [];
     const fallback = typeof product?.image_url === 'string' && product.image_url.trim() ? [product.image_url.trim()] : [];
     return (urls.length ? urls : fallback).slice(0, 3);
+}
+
+function getActiveProductDiscountPercent(product, nowMs = Date.now()) {
+    const enabled = product?.discountEnabled === true;
+    const percent = Number(product?.discountPercent) || 0;
+    if (!enabled || percent <= 0) return 0;
+
+    const startMs = getTimestampMs(product?.discountStartAt);
+    const endMs = getTimestampMs(product?.discountEndAt);
+
+    if (startMs && nowMs < startMs) return 0;
+    if (endMs && nowMs > endMs) return 0;
+
+    return Math.max(0, Math.min(100, percent));
+}
+
+function computeDiscountedPrice(basePrice, percent) {
+    const price = Number(basePrice) || 0;
+    const pct = Math.max(0, Math.min(100, Number(percent) || 0));
+    if (!pct) return price;
+    return Math.max(0, Math.round((price * (100 - pct)) / 100));
+}
+
+function renderPriceHtmlWithDiscount(basePrice, percent) {
+    const base = Number(basePrice) || 0;
+    const pct = Math.max(0, Math.min(100, Number(percent) || 0));
+    if (!pct || base <= 0) {
+        const label = typeof formatPrice === 'function' ? formatPrice(base) : String(base);
+        return escapeHtml(label);
+    }
+    const discounted = computeDiscountedPrice(base, pct);
+    const discountedLabel = typeof formatPrice === 'function' ? formatPrice(discounted) : String(discounted);
+    const baseLabel = typeof formatPrice === 'function' ? formatPrice(base) : String(base);
+    return `<span class="precio-oferta">${escapeHtml(discountedLabel)}</span> <span class="precio-normal">${escapeHtml(baseLabel)}</span>`;
 }
 
 function renderCarouselHtml(imageUrls, altText) {
@@ -1658,8 +2053,11 @@ async function renderHomeFeaturedProducts() {
 
             const priceEl = card.querySelector('.producto-precio');
             if (priceEl) {
-                const price = Number(p?.price) || 0;
-                priceEl.textContent = typeof formatPrice === 'function' ? formatPrice(price) : String(price);
+                const basePrice = Number(p?.price) || 0;
+                const pct = getActiveProductDiscountPercent(p);
+                priceEl.innerHTML = renderPriceHtmlWithDiscount(basePrice, pct);
+                const effective = pct ? computeDiscountedPrice(basePrice, pct) : basePrice;
+                card.setAttribute('data-unit-price', String(effective || 0));
             }
 
             card.dataset.productId = idRaw;
@@ -1749,19 +2147,21 @@ async function renderProductsCatalogFromApi() {
             const id = escapeHtml(idRaw);
             const idParam = encodeURIComponent(idRaw);
             const name = escapeHtml(p.name || 'Producto');
-            const price = Number(p.price) || 0;
-            const priceLabel = typeof formatPrice === 'function' ? formatPrice(price) : String(price);
+            const basePrice = Number(p.price) || 0;
+            const pct = getActiveProductDiscountPercent(p);
+            const effective = pct ? computeDiscountedPrice(basePrice, pct) : basePrice;
+            const priceHtml = renderPriceHtmlWithDiscount(basePrice, pct);
             const imageUrls = getProductImageUrls(p);
             const carousel = renderCarouselHtml(imageUrls, p.name);
 
             return `
-                <div class="catalog-item" data-product-id="${id}">
+                <div class="catalog-item" data-product-id="${id}" data-unit-price="${escapeHtml(String(effective || 0))}">
                     <a class="catalog-link" href="producto.html?id=${idParam}" aria-label="Ver ${name}">
                         <div class="catalog-image" style="background-color: #EDDECB;">
                             ${carousel}
                         </div>
                         <h3>${name}</h3>
-                        <p class="catalog-price">${escapeHtml(priceLabel)}</p>
+                        <p class="catalog-price">${priceHtml}</p>
                     </a>
                     <button class="add-to-cart" type="button">Agregar al carrito</button>
                 </div>
@@ -1869,7 +2269,9 @@ function applyProductSeo({ product, productUrl, imageUrls }) {
             document.head.appendChild(jsonLdEl);
         }
 
-        const price = Number(product?.price) || 0;
+        const basePrice = Number(product?.price) || 0;
+        const pct = getActiveProductDiscountPercent(product);
+        const price = pct ? computeDiscountedPrice(basePrice, pct) : basePrice;
         const productJsonLd = {
             '@context': 'https://schema.org',
             '@type': 'Product',
@@ -1935,8 +2337,10 @@ async function renderProductDetailPage() {
 
         const name = escapeHtml(p?.name || 'Producto');
         const description = escapeHtml(p?.description || '');
-        const price = Number(p?.price) || 0;
-        const priceLabel = typeof formatPrice === 'function' ? formatPrice(price) : String(price);
+        const basePrice = Number(p?.price) || 0;
+        const pct = getActiveProductDiscountPercent(p);
+        const effectivePrice = pct ? computeDiscountedPrice(basePrice, pct) : basePrice;
+        const priceHtml = renderPriceHtmlWithDiscount(basePrice, pct);
         const imageUrls = getProductImageUrls(p);
         const carousel = renderCarouselHtml(imageUrls, p?.name);
 
@@ -1959,7 +2363,7 @@ async function renderProductDetailPage() {
                 </div>
                 <div class="product-detail-info">
                     <h1 class="product-detail-title">${name}</h1>
-                    <p class="product-detail-price">${escapeHtml(priceLabel)}</p>
+                    <p class="product-detail-price">${priceHtml}</p>
                     ${description ? `<p class="product-detail-description">${description}</p>` : ''}
                     <div class="product-detail-actions">
                         <button class="add-to-cart btn-add-detail" type="button">Agregar al carrito</button>
@@ -1978,7 +2382,7 @@ async function renderProductDetailPage() {
             const product = {
                 product_id: String(p?.product_id || id),
                 name: String(p?.name || 'Producto'),
-                price,
+                price: effectivePrice,
                 quantity: 1
             };
             cart.add(product);

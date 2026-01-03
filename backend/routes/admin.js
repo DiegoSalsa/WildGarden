@@ -5,6 +5,12 @@ const { authenticateFirebaseToken, requireAdmin } = require('../middleware/fireb
 const { adminListOrders, adminUpdateOrderStatus, adminDeleteOrder } = require('../controllers/transactionController');
 const { adminListProducts, createProduct, updateProduct, deleteProduct } = require('../controllers/productController');
 const { adminListNotices, adminCreateNotice, adminUpdateNotice, adminDeleteNotice } = require('../controllers/noticeController');
+const {
+	adminListDiscountCodes,
+	adminCreateDiscountCode,
+	adminUpdateDiscountCode,
+	adminDeleteDiscountCode
+} = require('../controllers/discountCodeController');
 const { initCloudinary } = require('../config/cloudinary');
 
 const upload = multer({
@@ -27,6 +33,12 @@ router.get('/products', authenticateFirebaseToken, requireAdmin, adminListProduc
 router.post('/products', authenticateFirebaseToken, requireAdmin, createProduct);
 router.patch('/products/:product_id', authenticateFirebaseToken, requireAdmin, updateProduct);
 router.delete('/products/:product_id', authenticateFirebaseToken, requireAdmin, deleteProduct);
+
+// Admin: códigos de descuento (CRUD)
+router.get('/discount-codes', authenticateFirebaseToken, requireAdmin, adminListDiscountCodes);
+router.post('/discount-codes', authenticateFirebaseToken, requireAdmin, adminCreateDiscountCode);
+router.patch('/discount-codes/:code', authenticateFirebaseToken, requireAdmin, adminUpdateDiscountCode);
+router.delete('/discount-codes/:code', authenticateFirebaseToken, requireAdmin, adminDeleteDiscountCode);
 
 // Admin: subir imagen a Cloudinary
 router.post('/upload', authenticateFirebaseToken, requireAdmin, upload.single('image'), async (req, res) => {

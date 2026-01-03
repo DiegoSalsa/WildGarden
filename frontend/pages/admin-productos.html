@@ -74,6 +74,28 @@
                                 <input type="text" name="name" id="productName" placeholder="Nombre" required>
                                 <input type="text" name="category" id="productCategory" placeholder="Categoría">
                                 <input type="number" name="price" id="productPrice" placeholder="Precio" min="0" step="1" required>
+
+                                <div style="display:grid; gap:10px; padding:12px; border:1px solid rgba(37, 48, 32, 0.18); border-radius:6px;">
+                                    <div style="font-size:14px; font-weight:600;">Descuento del producto (opcional)</div>
+                                    <input type="number" id="productDiscountPercent" placeholder="Descuento (%)" min="0" max="100" step="1">
+
+                                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                                        <div style="flex:1; min-width:220px;">
+                                            <label for="productDiscountStart" style="display:block; font-size:13px; margin-bottom:6px;">Inicio (opcional)</label>
+                                            <input type="datetime-local" id="productDiscountStart" style="width:100%;">
+                                        </div>
+                                        <div style="flex:1; min-width:220px;">
+                                            <label for="productDiscountEnd" style="display:block; font-size:13px; margin-bottom:6px;">Fin (opcional)</label>
+                                            <input type="datetime-local" id="productDiscountEnd" style="width:100%;">
+                                        </div>
+                                    </div>
+
+                                    <label style="display:flex; align-items:center; gap:10px; font-size:14px;">
+                                        <input type="checkbox" id="productDiscountEnabled">
+                                        Habilitado
+                                    </label>
+                                </div>
+
                                 <input type="url" name="image_url_1" id="productImageUrl1" placeholder="URL imagen 1 (Cloudinary)">
                                 <input type="url" name="image_url_2" id="productImageUrl2" placeholder="URL imagen 2 (Cloudinary)">
                                 <input type="url" name="image_url_3" id="productImageUrl3" placeholder="URL imagen 3 (Cloudinary)">

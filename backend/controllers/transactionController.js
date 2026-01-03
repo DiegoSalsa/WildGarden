@@ -1,6 +1,62 @@
 const { getDb, initFirebaseAdmin } = require('../config/firebaseAdmin');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
 
+function normalizeDiscountCode(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw.toUpperCase().replace(/\s+/g, '');
+}
+
+function toMillis(ts) {
+    if (!ts) return 0;
+    if (typeof ts.toMillis === 'function') return ts.toMillis();
+    if (typeof ts.seconds === 'number') return ts.seconds * 1000;
+    if (typeof ts._seconds === 'number') return ts._seconds * 1000;
+    return 0;
+}
+
+function getActiveProductDiscountPercent(product, nowMs) {
+    if (!product) return 0;
+    if (product.discountEnabled !== true) return 0;
+    const pct = Math.max(0, Math.min(100, Number(product.discountPercent) || 0));
+    if (!pct) return 0;
+
+    const startMs = toMillis(product.discountStartAt) || 0;
+    const endMs = toMillis(product.discountEndAt) || 0;
+
+    if (startMs && nowMs < startMs) return 0;
+    if (endMs && nowMs > endMs) return 0;
+    return pct;
+}
+
+function computeDiscountedPrice(basePrice, percent) {
+    const base = Number(basePrice) || 0;
+    const pct = Math.max(0, Math.min(100, Number(percent) || 0));
+    if (!pct) return base;
+    return Math.max(0, Math.round((base * (100 - pct)) / 100));
+}
+
+async function validateDiscountCode(db, codeUpper, nowMs) {
+    if (!codeUpper) return { valid: false, percent: 0 };
+
+    const ref = db.collection('discountCodes').doc(codeUpper);
+    const doc = await ref.get();
+    if (!doc.exists) return { valid: false, percent: 0 };
+
+    const data = doc.data() || {};
+    if (data.enabled === false) return { valid: false, percent: 0 };
+
+    const pct = Math.max(0, Math.min(100, Number(data.percent) || 0));
+    if (!pct) return { valid: false, percent: 0 };
+
+    const startMs = toMillis(data.startAt) || 0;
+    const endMs = toMillis(data.endAt) || 0;
+    if (startMs && nowMs < startMs) return { valid: false, percent: 0 };
+    if (endMs && nowMs > endMs) return { valid: false, percent: 0 };
+
+    return { valid: true, percent: pct, code: codeUpper };
+}
+
 const getMyTransactions = async (req, res) => {
     try {
         const uid = req.user?.uid;
@@ -47,7 +103,6 @@ const createTransaction = async (req, res) => {
     try {
         const {
             order_id,
-            amount,
             customer_name,
             customer_email,
             customer_phone,
@@ -56,7 +111,8 @@ const createTransaction = async (req, res) => {
             cart_items,
             payment_method,
             needs_shipping,
-            shipping_cost,
+            discount_code,
+            discountCode,
             delivery_date,
             delivery_time,
             delivery_notes
@@ -68,25 +124,77 @@ const createTransaction = async (req, res) => {
         const uid = req.user?.uid || null;
 
         const id = order_id || db.collection('orders').doc().id;
-        const items = Array.isArray(cart_items)
+        const cart = Array.isArray(cart_items)
             ? cart_items.map(i => ({
-                productId: i.product_id,
-                name: i.name,
-                quantity: Number(i.quantity) || 0,
-                price: Number(i.price) || 0
-            }))
+                productId: String(i?.product_id || '').trim(),
+                quantity: Math.max(0, Math.floor(Number(i?.quantity) || 0))
+            })).filter(i => i.productId && i.quantity > 0)
             : [];
+
+        if (!cart.length) {
+            return res.status(400).json({ error: 'Carrito vacío' });
+        }
+
+        const nowMs = Date.now();
+
+        // Fetch products to avoid trusting client pricing
+        const productRefs = cart.map(i => db.collection('products').doc(i.productId));
+        const productDocs = await db.getAll(...productRefs);
+
+        const productsById = new Map();
+        productDocs.forEach((docSnap) => {
+            if (!docSnap?.exists) return;
+            productsById.set(docSnap.id, docSnap.data() || {});
+        });
+
+        const missing = cart.filter(i => !productsById.has(i.productId)).map(i => i.productId);
+        if (missing.length) {
+            return res.status(400).json({ error: `Producto(s) no encontrado(s): ${missing.join(', ')}` });
+        }
+
+        const items = cart.map((ci) => {
+            const p = productsById.get(ci.productId) || {};
+            const basePrice = Number(p.price) || 0;
+            const productPct = getActiveProductDiscountPercent(p, nowMs);
+            const unitPrice = productPct ? computeDiscountedPrice(basePrice, productPct) : basePrice;
+            return {
+                productId: ci.productId,
+                name: String(p.name || ''),
+                quantity: ci.quantity,
+                price: unitPrice,
+                originalPrice: basePrice,
+                productDiscountPercent: productPct || 0
+            };
+        });
+
+        const itemsSubtotal = items.reduce((sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 0), 0);
+
+        const normalizedCode = normalizeDiscountCode(discount_code || discountCode);
+        const validatedCode = await validateDiscountCode(db, normalizedCode, nowMs);
+        const codePercent = validatedCode.valid ? validatedCode.percent : 0;
+        const codeDiscountAmount = codePercent ? Math.round((itemsSubtotal * codePercent) / 100) : 0;
+        const subtotalAfterCode = Math.max(0, itemsSubtotal - codeDiscountAmount);
+
+        const needsShipping = !!needs_shipping;
+        const shippingCost = needsShipping ? 5000 : 0;
+        const amount = subtotalAfterCode + shippingCost;
 
         const order = {
             userId: uid,
             amount: Number(amount) || 0,
+            itemsSubtotal,
+            discount: {
+                code: validatedCode.valid ? validatedCode.code : null,
+                percent: codePercent,
+                amount: codeDiscountAmount
+            },
             customerName: customer_name || '',
             customerEmail: customer_email || '',
             customerPhone: customer_phone || '',
             customerAddress: customer_address || '',
             customerCity: customer_city || '',
-            needsShipping: !!needs_shipping,
-            shippingCost: Number(shipping_cost) || 0,
+            needsShipping,
+            shippingCost,
             deliveryDate: delivery_date || '',
             deliveryTime: delivery_time || '',
             deliveryNotes: delivery_notes || '',
