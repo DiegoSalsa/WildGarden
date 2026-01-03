@@ -73,7 +73,7 @@ body.menu-open {
     right: 0;
     background: var(--blanco);
     z-index: 1000;
-    padding: 20px 0;
+    padding: 18px 0;
     border-bottom: 1px solid var(--verde-medio);
     box-shadow: 0 2px 8px var(--sombra);
 }
@@ -1908,6 +1908,10 @@ html {
         padding: 0 20px;
     }
 
+    .header {
+        padding: 13px 0;
+    }
+
     /* Logo centrado en pantallas chicas (evita que quede corrido por tamaños distintos a izquierda/derecha) */
     .logo {
         position: absolute;
@@ -2108,8 +2112,12 @@ html {
         width: 100%;
         max-width: 100%;
         padding: 20px;
-        margin-top: 80px;
+        margin-top: 70px;
         min-height: auto;
+    }
+
+    .page-header {
+        margin-top: 70px;
     }
 
     .auth-box {
@@ -2153,7 +2161,20 @@ html {
 
     /* Header */
     .header {
-        padding: 15px 0;
+        padding: 8px 0;
+    }
+
+    .nav-menu {
+        top: 60px;
+        height: calc(100vh - 60px);
+    }
+
+    .auth-container {
+        margin-top: 60px;
+    }
+
+    .page-header {
+        margin-top: 60px;
     }
 
     .logo a {
