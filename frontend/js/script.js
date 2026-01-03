@@ -1667,12 +1667,18 @@ if (window.location.pathname.includes('carrito')) {
             return;
         }
         
-        cartContainer.innerHTML = cart.items.map(item => `
+        cartContainer.innerHTML = cart.items.map(item => {
+            const msg = String(item?.message || '').trim();
+            const msgHtml = msg
+                ? `<p class="item-message"><strong>Mensaje:</strong> ${escapeHtml(msg)}</p>`
+                : '';
+            return `
             <div class="carrito-item" data-product-id="${item.product_id}">
                 <div class="item-image" style="background-color: #EDDECB;"></div>
                 <div class="item-details">
                     <h3>${item.name}</h3>
                     <p class="item-price">${formatPrice(item.price)}</p>
+                    ${msgHtml}
                 </div>
                 <div class="item-quantity">
                     <button class="qty-btn qty-minus" data-product-id="${item.product_id}">-</button>
@@ -1684,7 +1690,8 @@ if (window.location.pathname.includes('carrito')) {
                 </div>
                 <button class="item-remove" data-product-id="${item.product_id}">&times;</button>
             </div>
-        `).join('');
+        `;
+        }).join('');
         
         // Event listeners para cantidad
         document.querySelectorAll('.qty-minus').forEach(btn => {
@@ -1774,7 +1781,6 @@ if (window.location.pathname.includes('carrito')) {
             const customerAddress = document.getElementById('customerAddress')?.value?.trim() || '';
             const customerCity = document.getElementById('customerCity')?.value?.trim() || '';
             const deliveryDate = document.getElementById('deliveryDate')?.value || '';
-            const deliveryTime = document.getElementById('deliveryTime')?.value || '';
             const deliveryNotes = document.getElementById('deliveryNotes')?.value?.trim() || '';
 
             if (!customerName) {
@@ -1792,8 +1798,8 @@ if (window.location.pathname.includes('carrito')) {
                     showNotification('Por favor completa tu dirección y comuna/ciudad para el envío.', 'error');
                     return;
                 }
-                if (!deliveryDate || !deliveryTime) {
-                    showNotification('Por favor selecciona el día y la hora aproximada de entrega.', 'error');
+                if (!deliveryDate) {
+                    showNotification('Por favor selecciona el día de entrega.', 'error');
                     return;
                 }
             }
@@ -1824,7 +1830,6 @@ if (window.location.pathname.includes('carrito')) {
                     needs_shipping: needsShipping,
                     shipping_cost: shippingCost,
                     delivery_date: deliveryDate,
-                    delivery_time: deliveryTime,
                     delivery_notes: deliveryNotes
                 });
 
@@ -2379,6 +2384,10 @@ async function renderProductDetailPage() {
                     <h1 class="product-detail-title">${name}</h1>
                     <p class="product-detail-price">${priceHtml}</p>
                     ${description ? `<p class="product-detail-description">${description}</p>` : ''}
+                    <div class="product-detail-message">
+                        <label for="productGiftMessage" class="product-detail-message-label">Mensaje para tarjeta (opcional)</label>
+                        <textarea id="productGiftMessage" class="product-detail-message-input" rows="3" maxlength="300" placeholder="Ej: Feliz cumpleaños, con cariño..."></textarea>
+                    </div>
                     <div class="product-detail-actions">
                         <button class="add-to-cart btn-add-detail" type="button">Agregar al carrito</button>
                         <a class="wsp-availability" href="${buildWhatsAppAvailabilityUrl(p?.name)}" target="_blank" rel="noopener">Verificar disponibilidad</a>
@@ -2393,11 +2402,13 @@ async function renderProductDetailPage() {
         const addBtn = container.querySelector('.btn-add-detail');
         addBtn?.addEventListener('click', (e) => {
             e.preventDefault();
+            const msg = String(container.querySelector('#productGiftMessage')?.value || '').trim();
             const product = {
                 product_id: String(p?.product_id || id),
                 name: String(p?.name || 'Producto'),
                 price: effectivePrice,
-                quantity: 1
+                quantity: 1,
+                message: msg ? msg.slice(0, 300) : ''
             };
             cart.add(product);
             showNotification(`${product.name} agregado al carrito`, 'success');

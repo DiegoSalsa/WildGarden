@@ -127,7 +127,8 @@ const createTransaction = async (req, res) => {
         const cart = Array.isArray(cart_items)
             ? cart_items.map(i => ({
                 productId: String(i?.product_id || '').trim(),
-                quantity: Math.max(0, Math.floor(Number(i?.quantity) || 0))
+                quantity: Math.max(0, Math.floor(Number(i?.quantity) || 0)),
+                message: String(i?.message || i?.card_message || i?.cardMessage || '').trim().slice(0, 300)
             })).filter(i => i.productId && i.quantity > 0)
             : [];
 
@@ -163,7 +164,8 @@ const createTransaction = async (req, res) => {
                 quantity: ci.quantity,
                 price: unitPrice,
                 originalPrice: basePrice,
-                productDiscountPercent: productPct || 0
+                productDiscountPercent: productPct || 0,
+                message: ci.message || ''
             };
         });
 

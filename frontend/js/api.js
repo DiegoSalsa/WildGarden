@@ -269,10 +269,15 @@ class Cart {
         const existing = this.items.find(item => item.product_id === product.product_id);
         if (existing) {
             existing.quantity += 1;
+            const msg = String(product?.message || '').trim();
+            if (msg) {
+                existing.message = msg;
+            }
         } else {
             this.items.push({
                 ...product,
-                quantity: 1
+                quantity: 1,
+                message: String(product?.message || '').trim()
             });
         }
         this.save();
