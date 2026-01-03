@@ -151,7 +151,7 @@ function updateAuthLinks() {
                     const aAdmin = document.createElement('a');
                     aAdmin.href = adminProductsHref;
                     aAdmin.className = 'nav-admin-products-link';
-                    aAdmin.textContent = 'Admin productos';
+                    aAdmin.textContent = 'Gestión de Productos';
                     liAdmin.appendChild(aAdmin);
 
                     // Insertar antes de "Salir" si existe, o al final
